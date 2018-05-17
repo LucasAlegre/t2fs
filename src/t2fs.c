@@ -9,6 +9,38 @@
 // Declarar aqui as vaŕiáveis globais
 struct t2fs_superbloco superBlock;
 
+int readSuperBlock(){
+
+	unsigned char buffer[SECTOR_SIZE];
+
+	if(read_sector(0, buffer) != 0){
+		printf("Error: Failed reading sector 0!\n");
+		return -1;
+	}
+
+	strncpy(superBlock.id, (char*)buffer, 4);
+	superBlock.version = *( (DWORD*)(buffer + 4) );
+	superBlock.superblockSize = *( (WORD*)(buffer + 6) );
+	superBlock.freeBlocksBitmapSize = *( (WORD*)(buffer + 8) ); 
+	superBlock.freeInodeBitmapSize = *( (WORD*)(buffer + 10) );
+	superBlock.inodeAreaSize = *( (WORD*)(buffer + 12) );
+	superBlock.blockSize = *( (WORD*)(buffer + 14) );
+	superBlock.diskSize = *( (DWORD*)(buffer + 16) );
+
+	if(DEBUG){
+		printf("Id: %s\n", superBlock.id);
+		printf("Version: %d\n", superBlock.version);
+		printf("SuperBlock Size: %d\n", superBlock.superblockSize);
+		printf("freeBlocksBitmapSize: %d\n", superBlock.freeBlocksBitmapSize);
+		printf("freeInodeBitmapSize: %d\n", superBlock.freeInodeBitmapSize);
+		printf("inodeAreaSize: %d\n", superBlock.inodeAreaSize);
+		printf("blockSize: %d\n", superBlock.blockSize);
+		printf("diskSize: %d\n", superBlock.diskSize);
+	}
+
+	return 0;
+
+}
 
 int identify2 (char *name, int size){
 
