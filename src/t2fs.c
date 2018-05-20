@@ -21,9 +21,9 @@ OpenFile openFiles[MAX_OPEN_FILES];
 
 int inodeAreaStartSector;
 int dataAreaStartBlock;
-int initalizedT2fs = FALSE;
+BOOL initalizedT2fs = FALSE;
 
-char currentPath[MAX_FILE_NAME_SIZE+1] = ['/', '\0'];
+char currentPath[MAX_FILE_NAME_SIZE+1];
 
 
 int readSuperBlock(){
@@ -54,6 +54,55 @@ void initializeOpenFiles(){
 	}
 }
 
+int getInode(DWORD inodeNumber, struct t2fs_inode *inode){
+
+	int inodeSector = inodeAreaStartSector + inodeNumber/INODE_PER_SECTOR;
+	unsigned char buffer[SECTOR_SIZE];
+
+	if(getBitmap2(BITMAP_INODE, inodeNumber) == 0){
+		return -1;
+	}
+
+	if(read_sector(inodeSector, buffer) != 0){
+		printf("Error: Failed reading inode sector!\n");
+		return -1;
+	}
+
+	int inode_byte_start = (inodeNumber % INODE_PER_SECTOR)*INODE_SIZE;
+	inode->blocksFileSize = *((DWORD*) (buffer + inode_byte_start + 0));
+	inode->bytesFileSize = *((DWORD*) (buffer + inode_byte_start + 4));
+	inode->dataPtr[0] = *((DWORD*) (buffer + inode_byte_start + 8));
+	inode->dataPtr[1] = *((DWORD*) (buffer + inode_byte_start + 12));
+	inode->singleIndPtr = *((DWORD*) (buffer + inode_byte_start + 16));
+	inode->doubleIndPtr = *((DWORD*) (buffer + inode_byte_start + 20));   
+	inode->reservado[0] = *((DWORD*) (buffer + inode_byte_start + 24));
+	inode->reservado[1] = *((DWORD*) (buffer + inode_byte_start + 28));
+
+	if(DEBUG){
+		printf("Inode blocksFileSize: %d\n", inode->blocksFileSize);
+		printf("Inode bytesFileSize: %d\n", inode->bytesFileSize);
+		printf("Inode dataPtr[0]: %d\n", inode->dataPtr[0]);
+	}
+
+	return 0;
+}
+
+int getRecords(DWORD blockNumber, Record *records){
+	unsigned char buffer[SECTOR_SIZE];
+	int i, j, c;
+	for(i = 0; i < superBlock.blockSize; i++){ // For all sector of block
+		int sectorNumber = blockNumber*superBlock.blockSize + i;
+		read_sector(sectorNumber, buffer);
+		for(j = 0; j < RECORD_PER_SECTOR; j++){  // For all record of sector
+			records[j + i*RECORD_PER_SECTOR].TypeVal = buffer[j*RECORD_SIZE];
+			for(c = 0; c < 59; c++){
+				records[j + i*RECORD_PER_SECTOR].name[c] = buffer[1 + c + j*RECORD_SIZE];
+			}
+			records[j + i*RECORD_PER_SECTOR].inodeNumber = *((DWORD*)(buffer + 60 + j*RECORD_SIZE));
+		}
+	}
+	return 0;
+}
 
 void initializeT2fs(){
 	if(initalizedT2fs)
@@ -66,6 +115,10 @@ void initializeT2fs(){
 
 	dataAreaStartBlock = superBlock.superblockSize + superBlock.freeBlocksBitmapSize + superBlock.freeInodeBitmapSize + superBlock.inodeAreaSize;
 	inodeAreaStartSector = superBlock.superblockSize*superBlock.blockSize + superBlock.freeBlocksBitmapSize*superBlock.blockSize + superBlock.freeInodeBitmapSize*superBlock.blockSize;
+
+	strcpy(currentPath, "/\0");
+
+	initalizedT2fs = TRUE;
 
 	if(DEBUG){
 		printf("Id: %s\n", superBlock.id);
@@ -83,10 +136,20 @@ void initializeT2fs(){
 		printf("Data Area Start Block: %d\n", dataAreaStartBlock);
 		printf("Inode Area Start Sector: %d\n", inodeAreaStartSector);
 
-		printf("%d\n", searchBitmap2(BITMAP_INODE, 0));
-	}
+		printf("First Free Inode: %d\n", searchBitmap2(BITMAP_INODE, 0));
+		printf("Current Path: %s\n", currentPath);
 
-	initalizedT2fs = TRUE;
+		struct t2fs_inode inode;
+		getInode(0, &inode);
+		Record records[RECORD_PER_SECTOR*superBlock.blockSize];
+		getRecords(inode.dataPtr[0], records);
+		int i;
+		for(i = 0; i < RECORD_PER_SECTOR*superBlock.blockSize; i++){
+			if(records[i].TypeVal != TYPEVAL_INVALIDO)
+				printf("%s\n", records[i].name);
+		}
+
+	}
 }
 
 //************************************* DAQUI PRA BAIXO SÃO AS FUNÇÕES PÚBLICAS *****************************************//
