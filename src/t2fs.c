@@ -12,6 +12,7 @@ typedef struct t2fs_record Record;
 typedef struct t2fs_openfile{
 	struct t2fs_record record;
 	DWORD currentPointer; // Em bytes a partir do inicio do arquivo!
+	DWORD entryBlock;  // Bloco com a entrada do arquivo no disco
 } OpenFile;
 
 
@@ -24,6 +25,7 @@ int dataAreaStartBlock;
 BOOL initalizedT2fs = FALSE;
 
 char currentPath[MAX_FILE_NAME_SIZE+1];
+DWORD currentDirInode;
 
 
 int readSuperBlock(){
@@ -59,7 +61,7 @@ int getInode(DWORD inodeNumber, struct t2fs_inode *inode){
 	int inodeSector = inodeAreaStartSector + inodeNumber/INODE_PER_SECTOR;
 	unsigned char buffer[SECTOR_SIZE];
 
-	if(getBitmap2(BITMAP_INODE, inodeNumber) == 0){
+	if(getBitmap2(BITMAP_INODE, inodeNumber) == 0){  // If inode is free return -1
 		return -1;
 	}
 
@@ -78,7 +80,7 @@ int getInode(DWORD inodeNumber, struct t2fs_inode *inode){
 	inode->reservado[0] = *((DWORD*) (buffer + inode_byte_start + 24));
 	inode->reservado[1] = *((DWORD*) (buffer + inode_byte_start + 28));
 
-	if(DEBUG){
+	if(DEBUG && 0){
 		printf("Inode blocksFileSize: %d\n", inode->blocksFileSize);
 		printf("Inode bytesFileSize: %d\n", inode->bytesFileSize);
 		printf("Inode dataPtr[0]: %d\n", inode->dataPtr[0]);
@@ -87,9 +89,11 @@ int getInode(DWORD inodeNumber, struct t2fs_inode *inode){
 	return 0;
 }
 
+// Get all records of the block given
 int getRecords(DWORD blockNumber, Record *records){
 	unsigned char buffer[SECTOR_SIZE];
 	int i, j, c;
+
 	for(i = 0; i < superBlock.blockSize; i++){ // For all sector of block
 		int sectorNumber = blockNumber*superBlock.blockSize + i;
 		read_sector(sectorNumber, buffer);
@@ -116,6 +120,7 @@ void initializeT2fs(){
 	dataAreaStartBlock = superBlock.superblockSize + superBlock.freeBlocksBitmapSize + superBlock.freeInodeBitmapSize + superBlock.inodeAreaSize;
 	inodeAreaStartSector = superBlock.superblockSize*superBlock.blockSize + superBlock.freeBlocksBitmapSize*superBlock.blockSize + superBlock.freeInodeBitmapSize*superBlock.blockSize;
 
+	currentDirInode = ROOT_INODE;
 	strcpy(currentPath, "/\0");
 
 	initalizedT2fs = TRUE;
@@ -139,17 +144,51 @@ void initializeT2fs(){
 		printf("First Free Inode: %d\n", searchBitmap2(BITMAP_INODE, 0));
 		printf("Current Path: %s\n", currentPath);
 
-		struct t2fs_inode inode;
-		getInode(0, &inode);
-		Record records[RECORD_PER_SECTOR*superBlock.blockSize];
-		getRecords(inode.dataPtr[0], records);
-		int i;
-		for(i = 0; i < RECORD_PER_SECTOR*superBlock.blockSize; i++){
-			if(records[i].TypeVal != TYPEVAL_INVALIDO)
-				printf("%s\n", records[i].name);
-		}
+		FILE2 file = open2("file3");
+		printf("%s\n", openFiles[file].record.name);
 
 	}
+}
+
+// Finde the file "filename" in one of the entries of the block given,
+// if found put it on *record
+int getRecordFromEntryBlock(DWORD blockNumber, char *filename, Record *record){
+	Record records[RECORD_PER_SECTOR*superBlock.blockSize];
+	getRecords(blockNumber, records);
+	int i;
+	for(i = 0; i < RECORD_PER_SECTOR*superBlock.blockSize; i++){
+		if(records[i].TypeVal != TYPEVAL_INVALIDO && strcmp(records[i].name, filename) == 0){
+			*record = records[i];
+			return 0;
+		}
+	}
+	return -1; // File not found
+}
+
+// Return first available position in the openFiles array
+// -1 if full
+FILE2 getFreeFileHandle(){
+	FILE2 freeHandle;
+	for(freeHandle = 0; freeHandle < MAX_OPEN_FILES; freeHandle++){
+		if(openFiles[freeHandle].record.TypeVal == TYPEVAL_INVALIDO)
+			return freeHandle;
+	}
+	return -1;
+}
+
+// Retorna todos os pointeiros em um bloco
+int getPointers(DWORD blockNumber, DWORD *pointers){
+	unsigned char buffer[SECTOR_SIZE];
+	int i, j;
+
+	for(i = 0; i < superBlock.blockSize; i++){ // For all sector of block
+		int sectorNumber = blockNumber*superBlock.blockSize + i;
+		read_sector(sectorNumber, buffer);
+		for(j = 0; j < PTR_PER_SECTOR; j++){  // For all record of sector
+			pointers[j + i*PTR_PER_SECTOR] = *((DWORD*)(buffer + j*PTR_SIZE));
+		}
+	}
+	return 0;
 }
 
 //************************************* DAQUI PRA BAIXO SÃO AS FUNÇÕES PÚBLICAS *****************************************//
@@ -201,12 +240,77 @@ int delete2 (char *filename){
 FILE2 open2 (char *filename){
 	initializeT2fs();
 
+	FILE2 freeHandle = getFreeFileHandle(); 
+	if(freeHandle == -1) 
+		return -1;
+
+	struct t2fs_inode dirInode;
+	/// AQUI É O DIRETORIO ATUAL OU TEM QUE ACHAR O DIRETORIO ???
+	if(getInode(currentDirInode, &dirInode) == -1) 
+		return -1; 
+
+	Record record;
+	int i, j;
+	// Search on direct pointers
+	for(i = 0; i < 2; i++){
+		if(dirInode.dataPtr[i] != INVALID_PTR){
+			if(getRecordFromEntryBlock(dirInode.dataPtr[i], filename, &record) == 0){
+				if(record.TypeVal == TYPEVAL_REGULAR){
+					openFiles[freeHandle].record = record;
+					openFiles[freeHandle].currentPointer = 0;
+					openFiles[freeHandle].entryBlock = dirInode.dataPtr[i];
+					return freeHandle;
+				}
+			}
+		}
+	}
+	// Search on simple indirection
+	if(dirInode.singleIndPtr != INVALID_PTR){
+		DWORD pointers[PTR_PER_SECTOR*superBlock.blockSize];
+		getPointers(dirInode.singleIndPtr, pointers);
+		for(i = 0; i < PTR_PER_SECTOR*superBlock.blockSize; i++){
+			if(pointers[i] != INVALID_PTR){
+				if(getRecordFromEntryBlock(pointers[i], filename, &record) == 0){
+					if(record.TypeVal == TYPEVAL_REGULAR){
+						openFiles[freeHandle].record = record;
+						openFiles[freeHandle].currentPointer = 0;
+						openFiles[freeHandle].entryBlock = pointers[i];
+						return freeHandle;
+					}
+				}
+			}
+		}
+	}
+	// Search on double indirection
+	if(dirInode.doubleIndPtr != INVALID_PTR){
+		DWORD doublePointers[PTR_PER_SECTOR*superBlock.blockSize];
+		getPointers(dirInode.doubleIndPtr, doublePointers);
+		for(i = 0; i < PTR_PER_SECTOR*superBlock.blockSize; i++){
+			if(doublePointers[i] != INVALID_PTR){
+				DWORD pointers[PTR_PER_SECTOR*superBlock.blockSize];
+				getPointers(doublePointers[i], pointers);
+				for(j = 0; j < PTR_PER_SECTOR*superBlock.blockSize; j++){
+					if(pointers[j] != INVALID_PTR){
+						if(getRecordFromEntryBlock(pointers[j], filename, &record) == 0){
+							if(record.TypeVal == TYPEVAL_REGULAR){
+								openFiles[freeHandle].record = record;
+								openFiles[freeHandle].currentPointer = 0;
+								openFiles[freeHandle].entryBlock = pointers[j];
+								return freeHandle;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Ver se tem espaço livre no vetor de OpenFiles
 	// ??? --- Procura no diretorio atual ou filename é um path?
 	// Coloca no OpenFiles
 	// Current pointer começa em 0
 
-	return -1;
+	return -1; // File not found
 }
 
 
@@ -277,7 +381,7 @@ int mkdir2 (char *pathname){
 	// -- Cria arquivo
 	   // -- Tem que criar duas entradas "./" e "../" !
 	   // ??? Entrada . e .. conta como tamanho do diretorio?
-
+	// ?? O disco sempre vem com o / pronto ou tem que criar o / ?
 	
 	return -1;
 }

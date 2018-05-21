@@ -14,7 +14,10 @@
 
 #define INODE_SIZE 32 //Bytes
 #define RECORD_SIZE 64
+#define PTR_SIZE 4
 #define INODE_PER_SECTOR 8
 #define RECORD_PER_SECTOR 4
 #define PTR_PER_SECTOR 64
 #define MAX_OPEN_FILES 10
+
+#define ROOT_INODE 0
