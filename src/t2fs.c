@@ -164,10 +164,21 @@ int rmdir2 (char *pathname){
 int chdir2 (char *pathname){
 	initializeT2fs();
 
-	// Navega no pathname
-	// 
+	Record record;
 
-	return -1;
+	if(getRecordFromPath(pathname) != 0) {
+		printError("Arquivo não encontrado!");
+		return -1;
+	}
+
+	if(record.TypeVal != TYPEVAL_DIRETORIO) {
+		printError("Arquivo não é diretório ou inválido!");
+		return -2;
+	}
+
+	currentDirInode = record.inodeNumber;
+
+	return 0;
 }
 
 
