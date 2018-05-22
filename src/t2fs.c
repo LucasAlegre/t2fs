@@ -214,11 +214,20 @@ DIR2 opendir2 (char *pathname){
 int readdir2 (DIR2 handle, DIRENT2 *dentry){
 	initializeT2fs();
 
-	
+	DIRENT2 ent;
 
+	if(openDirs[handle].TypeVal != TYPEVAL_DIRETORIO) {
+		printError("Handle Invalido");
+		return -1;
+	}
 
+	if(getRecordFromNumber(openDirs[handle].record.inodeNumber, openDirs[handle].currentPointer, &ent) != 0) {
+		return -2;
+	}
 
-	return -1;
+	openDirs[handle].currentPointer++;
+	*dentry = ent;
+	return 0;
 }
 
 int closedir2 (DIR2 handle){

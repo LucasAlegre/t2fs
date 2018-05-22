@@ -104,6 +104,15 @@ int getLastDirInode(char *pathname, Inode *inode);
 
 BOOL isDirEmpty(Inode *dirInode);
 
+void printError(char *error);
+
+/*-----------------------------------------------------------------------------
+Função: Procura o dirent de numero 'pointer' no diretorio 'inodeNumber'.
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int getRecordFromNumber(DWORD inodeNumber, int pointer, DIRENT2 *dirent);
+
 
 
 #endif

@@ -239,3 +239,19 @@ int getRecordFromPath(char *filename, Record *recordOut){
 
 
 }
+
+void printError(char *error) {
+	if(DEBUG) {
+		printf("[ERRO] %s\n", error);
+	}
+}
+
+/*-----------------------------------------------------------------------------
+Função: Procura o dirent de numero 'pointer' no diretorio 'inodeNumber'.
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int getRecordFromNumber(DWORD inodeNumber, int pointer, DIRENT2 *dirent) {
+	// TODO
+	return -1;
+}
