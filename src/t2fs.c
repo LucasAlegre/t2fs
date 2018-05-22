@@ -185,12 +185,30 @@ int chdir2 (char *pathname){
 
 int getcwd2 (char *pathname, int size){
 	initializeT2fs();
-	return -1;
+
+	strncpy(pathname, currentPath, size);
+	return 0;
 }
 
 DIR2 opendir2 (char *pathname){
 	initializeT2fs();
-	return -1;
+
+	DIR2 freeHandle = getFreeDirHandle(); 
+	if(freeHandle == -1) 
+		return -1;  // OpenFiles is full
+
+	Record record;
+	if(getRecordFromPath(filename, &record) != 0){
+		return -1;
+	} 
+
+	if(record.TypeVal != TYPEVAL_DIRETORIO){
+		return -1;
+	}
+
+	openFiles[freeHandle].record = record;
+	openFiles[freeHandle].currentPointer = 0;
+	return freeHandle;
 }
 
 int readdir2 (DIR2 handle, DIRENT2 *dentry){

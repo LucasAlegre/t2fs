@@ -152,6 +152,16 @@ FILE2 getFreeFileHandle(){
 	return -1;
 }
 
+DIR2 getFreeFileHandle(){
+	DIR2 freeHandle;
+	for(freeHandle = 0; freeHandle < MAX_OPEN_FILES; freeHandle++){
+		if(openFiles[freeHandle].record.TypeVal == TYPEVAL_INVALIDO)
+			return freeHandle;
+	}
+	
+	return -1;
+}
+
 int getPointers(DWORD blockNumber, DWORD *pointers){
 	unsigned char buffer[SECTOR_SIZE];
 	int i, j;
