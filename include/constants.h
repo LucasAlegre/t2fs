@@ -1,3 +1,6 @@
+#ifndef __CONSTANTS___
+#define __CONSTANTS___
+
 #define DEBUG TRUE
 
 #define	SECTOR_SIZE	256 //Bytes
@@ -19,5 +22,9 @@
 #define RECORD_PER_SECTOR 4
 #define PTR_PER_SECTOR 64
 #define MAX_OPEN_FILES 10
+#define MAX_OPEN_DIR 100
 
 #define ROOT_INODE 0
+
+
+#endif
