@@ -232,5 +232,11 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry){
 
 int closedir2 (DIR2 handle){
 	initializeT2fs();
-	return -1;
+
+	if(openDirs[handle].TypeVal != TYPEVAL_DIRETORIO) {
+		return -1;
+	}
+
+	openDirs[handle].TypeVal = TYPEVAL_INVALIDO;
+	return 0;
 }
