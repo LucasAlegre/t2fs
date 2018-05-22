@@ -87,6 +87,8 @@ Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero)
 -----------------------------------------------------------------------------*/
 int getPointers(DWORD blockNumber, DWORD *pointers);
 
+int gerRecordFromDir(Inode dirInode, char *filename, Record *recordOut);
+
 int getRecordFromPath(char *filename, Record *recordOut);
 
 /*

@@ -25,14 +25,22 @@ int identify2 (char *name, int size){
 FILE2 create2 (char *filename){
 	initializeT2fs();
 
-	// Ver se ja existe
-	// Percorre todas entradas do diretorio atual, ver se ja existe o arquivo com mesmo nome, e acha entrada livre
-	// Completa corretamente as estruturas t2fs_record e t2fs_inode pro arquivo
-	// setar o inode como ocupado
-	// Pointeiro do arquivo no 0
-
-	// ---- ? Começa com 0 ou 1 bloco?
-	// ---- ? Abre arquivo tambem?
+	// Inode dirInode, fileInode;
+	// Record record;
+	//if getLastDirInode(filenameCompleto, &dirInode) == 0
+	//    if(getRecordFromDir(dirInode, filenameSohArquivo, &record) == 0)
+	//          return -1; //arquivo ja existe
+	//	 else
+	//		strcpy(record.name, filenameSohArquivo);
+	//      record.Typeval = TYPEVAL_REGULAR;
+	//      int inodeNum = searchBitmap2(BITMAP_INODE, 0));
+	//		if(inodeNum != -1)
+    //			record.inodeNumber = inodeNum;
+	//      else
+	//         return -1 
+	//		initNewFileInode(inodeNum)  --> Deve marcar como ocupado no bitmap, inicializar um bloco de dados vazio
+	//      writeRecordOnDir(dirInode, record)
+	//      return open2(filenameCompleto)
 
 	return -1;
 }
@@ -41,12 +49,17 @@ FILE2 create2 (char *filename){
 int delete2 (char *filename){
 	initializeT2fs();
 
-	// Acha a entrada com o arquivo
-	// ??? --- Ver se ta aberto
-	// Marca como livre todos os blocos do arquivo
-	// Marca o inode como livre
-	// Marca a entrada no diretorio como TYPEVAL_INVALIDO
-	// ??? -- Arruma o tamanho do diretorio?
+	// Inode dirInode, fileInode;
+	// Record record;
+	//if getLastDirInode(filenameCompleto, &dirInode) == 0
+	//    if(getRecordFromDir(dirInode, filenameSohArquivo, &record) == 0)
+	//		  if(!isOpen(record.inode) && record.Typeval == TYPEVAL_REGULAR)
+	  	//	    
+		//      record.Typeval = TYPEVAL_INVALIDO;
+		//      removeAllDataFromInode(record.inode);
+		//      setBitmap2 (BITMAP_INODE, record.inode, 0);
+	    //      record.inodeNumber = INVALID_PTR:
+	    //      updateRecord(dirInode, record) --> procura pelo nome
 
 	return -1;
 }
@@ -75,8 +88,10 @@ FILE2 open2 (char *filename){
 int close2 (FILE2 handle){
 	initializeT2fs();
 
-	// Libera a entrada no OpenFiles
-	// ??? --- Escreve o record no handle no disco ou o disco ta sempre consistente?
+	// if( isFileHandleValid(handle))
+	// 		openFiles[handle].record.Typeval = TYPEVAL_INVALIDO;
+	//		openFiles[handle].record.inodeNumber = INVALID_PTR;
+	//      return 0;
 
 	return -1;
 }

@@ -74,6 +74,7 @@ void initializeOpenFiles(){
 	int i;
 	for(i = 0; i < MAX_OPEN_FILES; i++){
 		openFiles[i].record.TypeVal = TYPEVAL_INVALIDO;
+		openFiles[i].inodeNumber = INVALID_PTR;
 	}
 }
 
