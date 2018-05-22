@@ -7,6 +7,7 @@ int main(){
 
 	char a[1000];
 	identify2(a, 100);
+	identify2(a, 100);
 
 	return 0;
 }

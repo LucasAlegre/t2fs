@@ -7,6 +7,7 @@
 #include "apidisk.h"
 #include "bitmap2.h"
 #include "constants.h"
+#include "t2fs.h"
 
 //*********** TYPES ****************
 typedef struct t2fs_superbloco SuperBlock;
@@ -26,7 +27,6 @@ OpenFile openDirs[MAX_OPEN_DIR];
 
 int inodeAreaStartSector;
 int dataAreaStartBlock;
-BOOL initalizedT2fs = FALSE;
 
 char currentPath[MAX_FILE_NAME_SIZE+1];
 DWORD currentDirInode;

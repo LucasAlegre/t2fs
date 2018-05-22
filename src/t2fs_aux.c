@@ -4,7 +4,9 @@
 #include "apidisk.h"
 #include "bitmap2.h"
 #include "t2fs_aux.h"
+#include "t2fs.h"
 
+BOOL initalizedT2fs = FALSE;
 
 int readSuperBlock(){
 
