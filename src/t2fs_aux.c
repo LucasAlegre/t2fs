@@ -152,13 +152,12 @@ FILE2 getFreeFileHandle(){
 	return -1;
 }
 
-DIR2 getFreeFileHandle(){
+DIR2 getFreeDirHandle(){
 	DIR2 freeHandle;
-	for(freeHandle = 0; freeHandle < MAX_OPEN_FILES; freeHandle++){
-		if(openFiles[freeHandle].record.TypeVal == TYPEVAL_INVALIDO)
+	for(freeHandle = 0; freeHandle < MAX_OPEN_DIR; freeHandle++){
+		if(openDirs[freeHandle].record.TypeVal == TYPEVAL_INVALIDO)
 			return freeHandle;
 	}
-	
 	return -1;
 }
 

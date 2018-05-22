@@ -206,13 +206,18 @@ DIR2 opendir2 (char *pathname){
 		return -1;
 	}
 
-	openFiles[freeHandle].record = record;
-	openFiles[freeHandle].currentPointer = 0;
+	openDirs[freeHandle].record = record;
+	openDirs[freeHandle].currentPointer = 0;
 	return freeHandle;
 }
 
 int readdir2 (DIR2 handle, DIRENT2 *dentry){
 	initializeT2fs();
+
+	
+
+
+
 	return -1;
 }
 
