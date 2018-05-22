@@ -7,6 +7,7 @@
 #include "t2fs_aux.h"
 #include "constants.h"
 
+
 int identify2 (char *name, int size){
 	initializeT2fs();
 
@@ -56,75 +57,18 @@ FILE2 open2 (char *filename){
 
 	FILE2 freeHandle = getFreeFileHandle(); 
 	if(freeHandle == -1) 
-		return -1;
-
-	struct t2fs_inode dirInode;
-	/// AQUI É O DIRETORIO ATUAL OU TEM QUE ACHAR O DIRETORIO ???
-	if(getInode(currentDirInode, &dirInode) == -1) 
-		return -1; 
+		return -1;  // OpenFiles is full
 
 	Record record;
-	int i, j;
-	// Search on direct pointers
-	for(i = 0; i < 2; i++){
-		if(dirInode.dataPtr[i] != INVALID_PTR){
-			if(getRecordFromEntryBlock(dirInode.dataPtr[i], filename, &record) == 0){
-				if(record.TypeVal == TYPEVAL_REGULAR){
-					openFiles[freeHandle].record = record;
-					openFiles[freeHandle].currentPointer = 0;
-					openFiles[freeHandle].entryBlock = dirInode.dataPtr[i];
-					return freeHandle;
-				}
-			}
-		}
+	if(getRecordFromPath(filename, &record) != 0){
+		return -1;
+	} 
+	if(record.TypeVal == TYPEVAL_REGULAR){
+		openFiles[freeHandle].record = record;
+		openFiles[freeHandle].currentPointer = 0;
+		return freeHandle;
 	}
-	// Search on simple indirection
-	if(dirInode.singleIndPtr != INVALID_PTR){
-		DWORD pointers[PTR_PER_SECTOR*superBlock.blockSize];
-		getPointers(dirInode.singleIndPtr, pointers);
-		for(i = 0; i < PTR_PER_SECTOR*superBlock.blockSize; i++){
-			if(pointers[i] != INVALID_PTR){
-				if(getRecordFromEntryBlock(pointers[i], filename, &record) == 0){
-					if(record.TypeVal == TYPEVAL_REGULAR){
-						openFiles[freeHandle].record = record;
-						openFiles[freeHandle].currentPointer = 0;
-						openFiles[freeHandle].entryBlock = pointers[i];
-						return freeHandle;
-					}
-				}
-			}
-		}
-	}
-	// Search on double indirection
-	if(dirInode.doubleIndPtr != INVALID_PTR){
-		DWORD doublePointers[PTR_PER_SECTOR*superBlock.blockSize];
-		getPointers(dirInode.doubleIndPtr, doublePointers);
-		for(i = 0; i < PTR_PER_SECTOR*superBlock.blockSize; i++){
-			if(doublePointers[i] != INVALID_PTR){
-				DWORD pointers[PTR_PER_SECTOR*superBlock.blockSize];
-				getPointers(doublePointers[i], pointers);
-				for(j = 0; j < PTR_PER_SECTOR*superBlock.blockSize; j++){
-					if(pointers[j] != INVALID_PTR){
-						if(getRecordFromEntryBlock(pointers[j], filename, &record) == 0){
-							if(record.TypeVal == TYPEVAL_REGULAR){
-								openFiles[freeHandle].record = record;
-								openFiles[freeHandle].currentPointer = 0;
-								openFiles[freeHandle].entryBlock = pointers[j];
-								return freeHandle;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Ver se tem espaço livre no vetor de OpenFiles
-	// ??? --- Procura no diretorio atual ou filename é um path?
-	// Coloca no OpenFiles
-	// Current pointer começa em 0
-
-	return -1; // File not found
+	return -1;
 }
 
 
