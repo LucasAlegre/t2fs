@@ -20,14 +20,14 @@ typedef unsigned int DWORD;
 
 /** Superbloco */
 struct t2fs_superbloco {
-	char    id[4];          	/* Identificação do sistema de arquivo. É formado pelas letras “T2FS”. */
-	WORD    version;        	/* Versão atual desse sistema de arquivos: (valor fixo 0x7E2=2018; 1=1º semestre). */
-	WORD    superblockSize; 	/* O superbloco ocupa o primeiro bloco do disco, isso é, o bloco zero. */
+	char    id[4];          		/* Identificação do sistema de arquivo. É formado pelas letras “T2FS”. */
+	WORD    version;        		/* Versão atual desse sistema de arquivos: (valor fixo 0x7E2=2018; 1=1º semestre). */
+	WORD    superblockSize; 		/* O superbloco ocupa o primeiro bloco do disco, isso é, o bloco zero. */
 	WORD    freeBlocksBitmapSize;	/* Quantidade de blocos usados para armazenar o bitmap de blocos de dados livres e ocupados. */
 	WORD    freeInodeBitmapSize;	/* Quantidade de blocos usados para armazenar o bitmap de i-nodes livres e ocupados. */
-	WORD    inodeAreaSize;		/* Quantidade de blocos usados para armazenar os i-nodes do sistema. */
-	WORD    blockSize;		/* Quantidade de setores que formam um bloco lógico. */
-	DWORD   diskSize;		/* Quantidade total de blocos na partição T2FS. Inclui o superbloco, áreas de bitmap, área de i-node e blocos de dados */
+	WORD    inodeAreaSize;			/* Quantidade de blocos usados para armazenar os i-nodes do sistema. */
+	WORD    blockSize;				/* Quantidade de setores que formam um bloco lógico. */
+	DWORD   diskSize;				/* Quantidade total de blocos na partição T2FS. Inclui o superbloco, áreas de bitmap, área de i-node e blocos de dados */
 };
 
 /** Registro de diretório (entrada de diretório) */
@@ -41,7 +41,7 @@ struct t2fs_record {
 struct t2fs_inode {
 	DWORD	blocksFileSize;	/* Tamanho do arquivo expresso em quantidade de  blocos */
 	DWORD	bytesFileSize;	/* Tamanho do arquivo expresso em bytes */
-	DWORD	dataPtr[2];	/* Dois ponteiros diretos (little endian). Se inválido, recebe INVALID_PTR.        */
+	DWORD	dataPtr[2];	    /* Dois ponteiros diretos (little endian). Se inválido, recebe INVALID_PTR.        */
 	DWORD	singleIndPtr;   /* Ponteiro de indireção simples (little endian). Se inválido, recebe INVALID_PTR. */
 	DWORD	doubleIndPtr;   /* Ponteiro de indireção dupla (little endian) Se inválido, recebe INVALID_PTR.    */
 	DWORD	reservado[2];	/* Reservado */

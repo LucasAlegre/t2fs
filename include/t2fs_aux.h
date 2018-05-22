@@ -81,6 +81,13 @@ Saída:	O número do handle livre
 FILE2 getFreeFileHandle();
 
 /*-----------------------------------------------------------------------------
+Função: Retorna um DIR handle livre
+Saída:	O número do handle livre
+        -1 Não há handle livre
+-----------------------------------------------------------------------------*/
+DIR2 getFreeDirHandle();
+
+/*-----------------------------------------------------------------------------
 Função: Retorna PTR_PER_SECTOR*BLOCKSIZE ponteiros no vetor pointers
 Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
 	Em caso de erro, será retornado um valor diferente de zero.
@@ -98,6 +105,15 @@ int getRecordFromPath(char *filename, Record *recordOut);
 int getLastDirInode(char *pathname, Inode *inode);
 
 BOOL isDirEmpty(Inode *dirInode);
+
+void printError(char *error);
+
+/*-----------------------------------------------------------------------------
+Função: Procura o dirent de numero 'pointer' no diretorio 'inodeNumber'.
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int getRecordFromNumber(DWORD inodeNumber, int pointer, DIRENT2 *dirent);
 
 
 

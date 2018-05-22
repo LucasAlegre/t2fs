@@ -153,6 +153,15 @@ FILE2 getFreeFileHandle(){
 	return -1;
 }
 
+DIR2 getFreeDirHandle(){
+	DIR2 freeHandle;
+	for(freeHandle = 0; freeHandle < MAX_OPEN_DIR; freeHandle++){
+		if(openDirs[freeHandle].record.TypeVal == TYPEVAL_INVALIDO)
+			return freeHandle;
+	}
+	return -1;
+}
+
 int getPointers(DWORD blockNumber, DWORD *pointers){
 	unsigned char buffer[SECTOR_SIZE];
 	int i, j;
@@ -230,4 +239,20 @@ int getRecordFromPath(char *filename, Record *recordOut){
 	return 0;
 
 
+}
+
+void printError(char *error) {
+	if(DEBUG) {
+		printf("[ERRO] %s\n", error);
+	}
+}
+
+/*-----------------------------------------------------------------------------
+Função: Procura o dirent de numero 'pointer' no diretorio 'inodeNumber'.
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int getRecordFromNumber(DWORD inodeNumber, int pointer, DIRENT2 *dirent) {
+	// TODO
+	return -1;
 }
