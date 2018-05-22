@@ -177,6 +177,7 @@ int chdir2 (char *pathname){
 	}
 
 	currentDirInode = record.inodeNumber;
+	strncpy(currentPath, pathname, MAX_FILE_NAME_SIZE+1); // TODO: Fix path if used relative path
 
 	return 0;
 }
