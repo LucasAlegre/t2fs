@@ -237,22 +237,41 @@ int getRecordFromPath(char *filename, Record *recordOut){
 
 	*/
 	return 0;
+}
 
+int getRecordFromNumber(DWORD inodeNumber, int pointer, DIRENT2 *dirent) {
+	// TODO
+	return -1;
+}
 
+int getLastDirInode(char *pathname, Inode *inode){
+/*
+   Exemple: /a/b/c
+   Return b inode
+   retornar qualquer coisa diferente de 0 se qualquer coisa no caminho estiver errada
+*/
+}
+
+BOOL isDirEmpty(Inode *dirInode){}
+
+void removeAllDataFromInode(Inode *inode){}
+
+void updateRecord(Inode *inode, Record record){}
+
+void initNewDirInode(DWORD inodeNumber){
+/*
+	marcar como ocupado no bitmap
+	inicializar um bloco de dados
+	criar entradas ./ e ../
+*/
+}
+
+int addRecordOnDir(Inode *inode, Record record){
+	// Lembrar de verificar se tem ainda entrada sobrando
 }
 
 void printError(char *error) {
 	if(DEBUG) {
 		printf("[ERRO] %s\n", error);
 	}
-}
-
-/*-----------------------------------------------------------------------------
-Função: Procura o dirent de numero 'pointer' no diretorio 'inodeNumber'.
-Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
-	Em caso de erro, será retornado um valor diferente de zero.
------------------------------------------------------------------------------*/
-int getRecordFromNumber(DWORD inodeNumber, int pointer, DIRENT2 *dirent) {
-	// TODO
-	return -1;
 }

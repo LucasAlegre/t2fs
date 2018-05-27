@@ -112,9 +112,19 @@ int read2 (FILE2 handle, char *buffer, int size){
 
 int write2 (FILE2 handle, char *buffer, int size){
 	initializeT2fs();
+/*
+	OpenFile file;
+	Inode fileInode;
+	file = openFiles[handle];
 
-	// Ver se o arquivo no handle ta aberto
-	// Acessar o inode
+	if(file.record.TypeVal == TYPEVAL_REGULAR){
+		fileInode = getInodeFromInodeNumber(record.inodeNumber);
+
+		
+
+		return 0;
+	}
+*/
 	// Ve se tem espaço e acha o bloco onde vai escrever
 	// (Blocos de indices etc etc)
 	// Escreve
@@ -126,9 +136,26 @@ int write2 (FILE2 handle, char *buffer, int size){
 
 int truncate2 (FILE2 handle){
 	initializeT2fs();
+/*
+	OpenFile file;
+	Inode fileInode;
+	file = openFiles[handle];
 
-	// Ver se o arquivo no handle ta aberto
-	// Acessar o inode
+	if(file.record.TypeVal == TYPEVAL_REGULAR){
+		fileInode = getInodeFromInodeNumber(record.inodeNumber);
+		
+		if(file.currentPointer < fileInode.bytesFileSize + 1)
+		
+		
+
+		return 0;
+	}
+*/
+
+	// Remove do arquivo todos os bytes a partir da posição atual do contador de posição (CP)
+	// Todos os bytes a partir da posição CP (inclusive) serão removidos do arquivo.
+	// Após a operação, o arquivo deverá contar com CP bytes e o ponteiro estará no final do arquivo
+	
 	// Calcula os bytes que vao ser apagados
 	// Sai marcando os blocos como livres(cuidar bloco de indices)
 	// Atualiza tamanho do arquivo
@@ -139,9 +166,22 @@ int truncate2 (FILE2 handle){
 int seek2 (FILE2 handle, DWORD offset){
 	initializeT2fs();
 
-	//	O parâmetro "offset" corresponde ao deslocamento, em bytes, contados a partir do início do arquivo.
-	//  Se o valor de "offset" for "-1", o current_pointer deverá ser posicionado no byte seguinte ao final do arquivo,
-	//	Isso é útil para permitir que novos dados sejam adicionados no final de um arquivo já existente.
+/*
+	OpenFile file;
+	Inode fileInode;
+	file = openFiles[handle];
+
+	if(file.record.TypeVal == TYPEVAL_REGULAR){
+		if(offset != -1)
+			file.currentPointer = offset;
+		else{
+			fileInode = getInodeFromInodeNumber(record.inodeNumber);
+			file.currentPointer = fileInode.bytesFileSize + 1; (not sure)
+		}
+		openFiles[handle] = file;
+		return 0;
+	}
+*/
 	return -1;
 }
 
@@ -149,13 +189,25 @@ int seek2 (FILE2 handle, DWORD offset){
 int mkdir2 (char *pathname){
 	initializeT2fs();
 
-	// -- Navega até o último diretorio
-	// -- Acha entrada livre
-	// -- Cria arquivo
-	   // -- Tem que criar duas entradas "./" e "../" !
-	   // ??? Entrada . e .. conta como tamanho do diretorio?
-	// ?? O disco sempre vem com o / pronto ou tem que criar o / ?
-	
+/*
+	Inode dirInode, previousDirInode;
+	Record record;
+
+	if(getLastDirInode(filenameCompleto, &dirInode) == 0){
+	   	if(getRecordFromDir(previousDirInode, dirName, &record) != 0){ //se esse dir não existe
+		    strcpy(record.name, dirName);
+		    record.Typeval = TYPEVAL_DIRETORIO;
+		    int inodeNum = searchBitmap2(BITMAP_INODE, 0));
+			if(inodeNum != -1)
+	    		record.inodeNumber = inodeNum;
+		    else
+		    	return -1;
+			initNewDirInode(inodeNum);
+		    if(addRecordOnDir(&dirInode, record) == 0)
+		    	return 0;
+		}
+	}
+*/
 	return -1;
 }
 
@@ -163,15 +215,23 @@ int mkdir2 (char *pathname){
 int rmdir2 (char *pathname){
 	initializeT2fs();
 
-    //	São considerados erros quaisquer situações que impeçam a operação.
-	//	Isso inclui:
-	//		(a) o diretório a ser removido não está vazio;
-	//		(b) "pathname" não existente;
-	//		(c) algum dos componentes do "pathname" não existe (caminho inválido);
-	//		(d) o "pathname" indicado não é um arquivo;
-
-	// Faz parecido com delete
-
+/*
+	Inode dirInode, previousDirInode;
+	Record record;
+	if(getLastDirInode(pathname, &previousDirInode) == 0){
+		if(getRecordFromDir(previousDirInode, dirName, &record) == 0){
+			getInodeFromInodeNumber(record.inode, &dirInode);
+			if(record.Typeval == TYPEVAL_DIRETORIO && isDirEmpty(dirInode)){ 
+	     		record.Typeval = TYPEVAL_INVALIDO;
+	     		removeAllDataFromInode(record.inode);
+	     		setBitmap2 (BITMAP_INODE, record.inode, 0);
+	     		record.inodeNumber = INVALID_PTR:
+	     		updateRecord(previousDirInode, record) --> procura pelo nome
+				return 0;
+			}
+		}
+	}
+*/
 	return -1;
 }
 

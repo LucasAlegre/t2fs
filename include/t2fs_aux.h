@@ -94,27 +94,63 @@ Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero)
 -----------------------------------------------------------------------------*/
 int getPointers(DWORD blockNumber, DWORD *pointers);
 
+/*-----------------------------------------------------------------------------
+Função: Retorna na variavel record a entrada com o nome dado no bloco de diretório
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
 int gerRecordFromDir(Inode dirInode, char *filename, Record *recordOut);
 
-int getRecordFromPath(char *filename, Record *recordOut);
+/*------------------------TO DO-----------------------------------------------------
+Função: Retorna na variavel record a entrada do arquivo com caminho (absoluto ou relativo) em pathname
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int getRecordFromPath(char *pathname, Record *recordOut);
 
-/*
-   Exemple: /a/b/c
-   Return b inode
-*/
-int getLastDirInode(char *pathname, Inode *inode);
-
-BOOL isDirEmpty(Inode *dirInode);
-
-void printError(char *error);
-
-/*-----------------------------------------------------------------------------
+/*------------------------TO DO-----------------------------------------------------
 Função: Procura o dirent de numero 'pointer' no diretorio 'inodeNumber'.
 Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
 	Em caso de erro, será retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
 int getRecordFromNumber(DWORD inodeNumber, int pointer, DIRENT2 *dirent);
 
+/*------------------------TO DO-----------------------------------------------------
+Função: Procura o inode do diretório pai do arquivo folha (regular ou diretorio) passado em pathname (caminho relativo ou absoluto)
+Exemplo: pathname /a/b/c => retorna o inode de b
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int getLastDirInode(char *pathname, Inode *inode);
 
+/*------------------------TO DO-----------------------------------------------------
+Função: Verifica se o diretório está vazio (não possui nenhuma entrada válida)
+Saída:	Se vazio, true. Se existir alguma entrada, false
+-----------------------------------------------------------------------------*/
+BOOL isDirEmpty(Inode *dirInode);
+
+/*------------------------TO DO-----------------------------------------------------
+Função: Libera todos os blocos de dados do inode
+-----------------------------------------------------------------------------*/
+void removeAllDataFromInode(Inode *inode);
+
+/*------------------------TO DO-----------------------------------------------------
+Função: Procura pela ocorrência do record de mesmo nome do record parâmetro e substitui pelo passado em parâmetro
+-----------------------------------------------------------------------------*/
+void updateRecord(Inode *inode, Record record);
+
+/*------------------------TO DO-----------------------------------------------------
+Função: Inicializa um inode para um novo diretório
+-----------------------------------------------------------------------------*/
+void initNewDirInode(DWORD inodeNumber);
+
+/*------------------------TO DO-----------------------------------------------------
+Função: Acidiona a entrada recebida em record no inode
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int addRecordOnDir(Inode *inode, Record record);
+
+void printError(char *error);
 
 #endif
