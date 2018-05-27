@@ -275,3 +275,29 @@ void printError(char *error) {
 		printf("[ERRO] %s\n", error);
 	}
 }
+
+void fixPath(char* path) {
+    char originalPath[MAX_FILE_NAME_SIZE+1];
+    strcpy(originalPath, path);
+    *path = '\0';
+    char split[] = "/";
+    char* token;
+    char* c;
+    
+    token = strtok(originalPath, split);
+   
+    while( token != NULL ) {
+        if(strcmp(token, "..") == 0) {
+            c = strrchr(path, '/');
+            if(c != NULL)
+                *c = '\0';
+                
+        } else if(strcmp(token, "") != 0 && strcmp(token, ".") != 0) {
+            strcat(path, "/");
+            strcat(path, token);
+        }
+        
+        token = strtok(NULL, split);
+    }
+    strcat(path, "/");
+}

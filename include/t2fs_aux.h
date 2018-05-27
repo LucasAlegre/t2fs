@@ -153,4 +153,9 @@ int addRecordOnDir(Inode *inode, Record record);
 
 void printError(char *error);
 
+/*----------------------------------------------------------------------------------
+Função: Remove .s e ..s de um caminho
+-----------------------------------------------------------------------------*/
+void fixPath(char* path);
+
 #endif
