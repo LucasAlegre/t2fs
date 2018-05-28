@@ -238,7 +238,7 @@ int rmdir2 (char *pathname){
 
 int chdir2 (char *pathname){
 	initializeT2fs();
-
+/*
 	Record record;
 
 	if(getRecordFromPath(pathname) != 0) {
@@ -253,7 +253,7 @@ int chdir2 (char *pathname){
 
 	currentDirInode = record.inodeNumber;
 	strncpy(currentPath, pathname, MAX_FILE_NAME_SIZE+1); // TODO: Fix path if used relative path
-
+*/
 	return 0;
 }
 
@@ -269,7 +269,7 @@ DIR2 opendir2 (char *pathname){
 	initializeT2fs();
 
 	DIR2 freeHandle = getFreeDirHandle(); 
-	if(freeHandle == -1) 
+	/*if(freeHandle == -1) 
 		return -1;  // OpenFiles is full
 
 	Record record;
@@ -282,7 +282,7 @@ DIR2 opendir2 (char *pathname){
 	}
 
 	openDirs[freeHandle].record = record;
-	openDirs[freeHandle].currentPointer = 0;
+	openDirs[freeHandle].currentPointer = 0;*/
 	return freeHandle;
 }
 
@@ -291,7 +291,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry){
 
 	DIRENT2 ent;
 
-	if(openDirs[handle].TypeVal != TYPEVAL_DIRETORIO) {
+	if(openDirs[handle].record.TypeVal != TYPEVAL_DIRETORIO) {
 		printError("Handle Invalido");
 		return -1;
 	}
@@ -308,10 +308,10 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry){
 int closedir2 (DIR2 handle){
 	initializeT2fs();
 
-	if(openDirs[handle].TypeVal != TYPEVAL_DIRETORIO) {
+	if(openDirs[handle].record.TypeVal != TYPEVAL_DIRETORIO) {
 		return -1;
 	}
 
-	openDirs[handle].TypeVal = TYPEVAL_INVALIDO;
+	openDirs[handle].record.TypeVal = TYPEVAL_INVALIDO;
 	return 0;
 }

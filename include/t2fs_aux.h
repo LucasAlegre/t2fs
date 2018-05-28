@@ -51,6 +51,11 @@ Função: Inicializa vetor de arquivos abertos openFiles
 void initializeOpenFiles();
 
 /*-----------------------------------------------------------------------------
+Função: Inicializa vetor de diretórios abertos openDirs
+-----------------------------------------------------------------------------*/
+void initializeOpenDirs();
+
+/*-----------------------------------------------------------------------------
 Função: Retorna a estrutura inode do disco associado ao inodeNumber
 Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
 	Em caso de erro, será retornado um valor diferente de zero.

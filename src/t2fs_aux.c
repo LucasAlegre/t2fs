@@ -16,6 +16,7 @@ void initializeT2fs(){
 		printf("Error: SuperBlock not read!\n");
 	}
 	initializeOpenFiles();
+	initializeOpenDirs();
 
 	dataAreaStartBlock = superBlock.superblockSize + superBlock.freeBlocksBitmapSize + superBlock.freeInodeBitmapSize + superBlock.inodeAreaSize;
 	inodeAreaStartSector = superBlock.superblockSize*superBlock.blockSize + superBlock.freeBlocksBitmapSize*superBlock.blockSize + superBlock.freeInodeBitmapSize*superBlock.blockSize;
@@ -44,8 +45,10 @@ void initializeT2fs(){
 		printf("First Free Inode: %d\n", searchBitmap2(BITMAP_INODE, 0));
 		printf("Current Path: %s\n", currentPath);
 
-		FILE2 file = open2("file3");
-		printf("%s\n", openFiles[file].record.name);
+		Inode inode;
+		getInodeFromInodeNumber(0, &inode);
+		printf("Tamanho bytes: %d\n", inode.bytesFileSize);
+		printf("Tamanho blocos: %d\n", inode.blocksFileSize);
 	}
 }
 
@@ -74,7 +77,15 @@ void initializeOpenFiles(){
 	int i;
 	for(i = 0; i < MAX_OPEN_FILES; i++){
 		openFiles[i].record.TypeVal = TYPEVAL_INVALIDO;
-		openFiles[i].inodeNumber = INVALID_PTR;
+		openFiles[i].record.inodeNumber = INVALID_PTR;
+	}
+}
+
+void initializeOpenDirs(){
+	int i;
+	for(i = 0; i < MAX_OPEN_DIR; i++){
+		openDirs[i].record.TypeVal = TYPEVAL_INVALIDO;
+		openDirs[i].record.inodeNumber = INVALID_PTR;
 	}
 }
 
@@ -249,10 +260,12 @@ int getLastDirInode(char *pathname, Inode *inode){
    Exemple: /a/b/c
    Return b inode
    retornar qualquer coisa diferente de 0 se qualquer coisa no caminho estiver errada
+
 */
+	return -1;
 }
 
-BOOL isDirEmpty(Inode *dirInode){}
+BOOL isDirEmpty(Inode *dirInode){return FALSE;}
 
 void removeAllDataFromInode(Inode *inode){}
 
@@ -310,6 +323,7 @@ int addRecordOnDir(Inode dirInode, Record record){
 		else{
 			pointers[i] = initNewEntryBlock();
 			writeRecordOnDir(pointers[i], record, 0);
+			return 0;
 		}
 	}
 
