@@ -33,13 +33,13 @@ FILE2 create2 (char *filename){
 	//	 else
 	//		strcpy(record.name, filenameSohArquivo);
 	//      record.Typeval = TYPEVAL_REGULAR;
-	//      int inodeNum = searchBitmap2(BITMAP_INODE, 0));
+	//      int inodeNum = initNewFileInode();
 	//		if(inodeNum != -1)
     //			record.inodeNumber = inodeNum;
 	//      else
 	//         return -1 
-	//		initNewFileInode(inodeNum)  --> Deve marcar como ocupado no bitmap, inicializar um bloco de dados vazio
-	//      writeRecordOnDir(dirInode, record)
+	//      if(addRecordOnDir(dirInode, record) != 0)
+	//			return -1;
 	//      return open2(filenameCompleto)
 
 	return -1;
@@ -75,7 +75,7 @@ FILE2 open2 (char *filename){
 	Record record;
 	if(getRecordFromPath(filename, &record) != 0){
 		return -1;
-	} 
+	}
 	if(record.TypeVal == TYPEVAL_REGULAR){
 		openFiles[freeHandle].record = record;
 		openFiles[freeHandle].currentPointer = 0;

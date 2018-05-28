@@ -126,6 +126,8 @@ int getLastDirInode(char *pathname, Inode *inode);
 /*------------------------TO DO-----------------------------------------------------
 Função: Verifica se o diretório está vazio (não possui nenhuma entrada válida)
 Saída:	Se vazio, true. Se existir alguma entrada, false
+
+OBS: Ignorar . e ..
 -----------------------------------------------------------------------------*/
 BOOL isDirEmpty(Inode *dirInode);
 
@@ -149,8 +151,63 @@ Função: Acidiona a entrada recebida em record no inode
 Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
 	Em caso de erro, será retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
-int addRecordOnDir(Inode *inode, Record record);
+int addRecordOnDir(Inode dirInode, Record record);
 
+/*-----------------------------------------------------------------------------
+Função: Realiza a escrita do record dado, na entrada de número recordNum do
+bloco de entradas dado por blockNum
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int writeRecordOnDir(DWORD blockNum, Record record, int recordNum);
+
+/*
+Função: Autoexplicativo :P
+*/
 void printError(char *error);
+
+/*-----------------------------------------------------------------------------
+Saída:	Retorna TRUE se válido, FALSE caso contrário.
+-----------------------------------------------------------------------------*/
+BOOL isDirHandleValid(DIR2 handle);
+
+/*-----------------------------------------------------------------------------
+Saída:	Retorna TRUE se válido, FALSE caso contrário.
+-----------------------------------------------------------------------------*/
+BOOL isFileHandleValid(FILE2 handle);
+
+/*-----------------------------------------------------------------------------
+Função: Inicializa um inode novo para um arquivo, alocando um bloco de dados.
+Saída: O número do i-node alocado caso sucesso.
+       -1 em caso de erro.
+-----------------------------------------------------------------------------*/
+int initNewFileInode();
+
+/*-----------------------------------------------------------------------------
+Função: Escreve a dword no buffer a partir da posição dada por start.
+-----------------------------------------------------------------------------*/
+void writeDwordOnBuffer(unsigned char *buffer, int start, DWORD dword);
+
+/*-----------------------------------------------------------------------------
+Função: Escreve o inode dado no inode de posiçao inodeNumber no disco.
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int writeInodeOnDisk(Inode inode, int inodeNumber);
+
+/*-----------------------------------------------------------------------------
+Função: Inicializa um bloco de entradas de diretório vazias. 
+Saída: O número do bloco alocado caso sucesso.
+       -1 em caso de erro.
+-----------------------------------------------------------------------------*/
+int initNewEntryBlock();
+
+/*-----------------------------------------------------------------------------
+Função: Inicializa um bloco de ponteiros inválidos. 
+Saída: O número do bloco alocado caso sucesso.
+       -1 em caso de erro.
+-----------------------------------------------------------------------------*/
+int initNewPointerBlock();
+
 
 #endif

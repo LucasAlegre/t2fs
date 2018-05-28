@@ -266,12 +266,180 @@ void initNewDirInode(DWORD inodeNumber){
 */
 }
 
-int addRecordOnDir(Inode *inode, Record record){
-	// Lembrar de verificar se tem ainda entrada sobrando
+int addRecordOnDir(Inode dirInode, Record record){
+	int i, j;
+	Record records[RECORD_PER_SECTOR*BLOCK_SIZE];
+
+	getRecordsFromEntryBlock(dirInode.dataPtr[0], records);
+	for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
+		if(records[i].TypeVal == TYPEVAL_INVALIDO){
+			if(writeRecordOnDir(dirInode.dataPtr[0], record, i) == 0)
+				return 0;
+		}
+	}
+
+	if(dirInode.dataPtr[1] == INVALID_PTR){
+		dirInode.dataPtr[1] = initNewEntryBlock();
+		if(dirInode.dataPtr[1] == -1)
+			return -1;
+	}
+	getRecordsFromEntryBlock(dirInode.dataPtr[1], records);
+	for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
+		if(records[i].TypeVal == TYPEVAL_INVALIDO){
+			if(writeRecordOnDir(dirInode.dataPtr[1], record, i) == 0)
+				return 0;
+		}
+	}
+
+	
+	if(dirInode.singleIndPtr == INVALID_PTR){
+		dirInode.singleIndPtr = initNewPointerBlock();
+	}
+	DWORD pointers[PTR_PER_SECTOR*BLOCK_SIZE];
+	getPointers(dirInode.singleIndPtr, pointers);
+	for(i = 0; i < PTR_PER_SECTOR*BLOCK_SIZE; i++){
+		if(pointers[i] != INVALID_PTR){
+			getRecordsFromEntryBlock(pointers[i], records);
+			for(j = 0; j < RECORD_PER_SECTOR*BLOCK_SIZE; j++){
+				if(records[i].TypeVal == TYPEVAL_INVALIDO){
+					if(writeRecordOnDir(pointers[i], record, j) == 0)
+						return 0;
+				}
+			}
+		}
+		else{
+			pointers[i] = initNewEntryBlock();
+			writeRecordOnDir(pointers[i], record, 0);
+		}
+	}
+
+
+	// FALTA DUPLA INDIREÇÃO
+
+	return -1;
+}
+
+int writeRecordOnDir(DWORD blockNum, Record record, int recordNum){
+	unsigned char buffer[SECTOR_SIZE];
+	int i;
+	int sector = blockNum*BLOCK_SIZE + (recordNum*RECORD_SIZE)/(SECTOR_SIZE);
+	int byte_start = (recordNum % RECORD_PER_SECTOR)*RECORD_SIZE;
+	if(read_sector(sector, buffer) != 0)
+		return -1;
+
+	buffer[byte_start] = record.TypeVal;
+	for(i = 0; i < 59; i++){
+		buffer[1 + i + byte_start] = record.name[i];
+	}
+	writeDwordOnBuffer(buffer, byte_start + 60, record.inodeNumber);
+	if(write_sector(sector, buffer) != 0)
+		return -1;
+
+	return 0;
+}
+
+int initNewEntryBlock(){
+	Record emptyRecord;
+	int i;
+	emptyRecord.TypeVal = TYPEVAL_INVALIDO;
+	emptyRecord.inodeNumber = INVALID_PTR;
+	int blockNum = searchBitmap2(BITMAP_DADOS, 0);
+	if(blockNum <= 0)
+		return -1;
+	for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
+		if(writeRecordOnDir(blockNum, emptyRecord, i) != 0)
+			return -1;
+	}
+	setBitmap2(BITMAP_DADOS, blockNum, 1);
+	return blockNum;
+}
+
+int initNewPointerBlock(){
+	DWORD pointer = INVALID_PTR;
+	int i;
+	unsigned char buffer[SECTOR_SIZE];
+	for(i = 0; i < PTR_PER_SECTOR; i++){
+		writeDwordOnBuffer(buffer, i*PTR_SIZE, pointer);
+	}
+	int blockNum = searchBitmap2(BITMAP_DADOS, 0);
+	if(blockNum <= 0)
+		return -1;
+	for(i = 0; i < BLOCK_SIZE; i++){
+		if(write_sector(blockNum*BLOCK_SIZE + i, buffer) != 0)
+			return -1;
+	}
+	setBitmap2(BITMAP_DADOS, blockNum, 1);
+	return blockNum;
 }
 
 void printError(char *error) {
 	if(DEBUG) {
 		printf("[ERRO] %s\n", error);
 	}
+}
+
+BOOL isDirHandleValid(DIR2 handle){
+	if(handle < 0 || handle >= MAX_OPEN_DIR || openDirs[handle].record.TypeVal != TYPEVAL_DIRETORIO)
+		return FALSE;
+	else
+		return TRUE;
+}
+
+BOOL isFileHandleValid(FILE2 handle){
+	if(handle < 0 || handle >= MAX_OPEN_FILES || openDirs[handle].record.TypeVal != TYPEVAL_REGULAR)
+		return FALSE;
+	else
+		return TRUE;
+}
+
+int initNewFileInode(){
+	DWORD inodeNumber = searchBitmap2(BITMAP_INODE, 0);
+	if(inodeNumber <= 0)
+		return -1;
+	Inode inode;
+	inode.blocksFileSize = 1;
+	inode.bytesFileSize = 0;
+	inode.dataPtr[1] = INVALID_PTR;
+	inode.singleIndPtr = INVALID_PTR;
+	inode.doubleIndPtr = INVALID_PTR;
+	int blockNum = searchBitmap2(BITMAP_DADOS, 0);
+	if(blockNum <= 0)
+		return -1;
+	setBitmap2(BITMAP_DADOS, blockNum, 1);
+	inode.dataPtr[0] = blockNum;
+	setBitmap2(BITMAP_INODE, inodeNumber, 1);
+
+	if(writeInodeOnDisk(inode, inodeNumber) != 0)
+		return -1;
+
+	return inodeNumber;
+}
+
+void writeDwordOnBuffer(unsigned char *buffer, int start, DWORD dword){
+	unsigned char *aux;
+	aux = (unsigned char*)&dword;
+	int i;
+	for(i = 0; i < 4; i++)
+		buffer[start + i] = aux[i];
+}
+
+int writeInodeOnDisk(Inode inode, int inodeNumber){
+	int inodeSector = inodeAreaStartSector + inodeNumber/INODE_PER_SECTOR;
+	unsigned char buffer[SECTOR_SIZE];
+
+	if(read_sector(inodeSector, buffer) != 0)
+		return -1;
+
+	int inode_byte_start = (inodeNumber % INODE_PER_SECTOR)*INODE_SIZE;
+	writeDwordOnBuffer(buffer, inode_byte_start + 0, inode.blocksFileSize);
+	writeDwordOnBuffer(buffer, inode_byte_start + 4, inode.bytesFileSize);
+	writeDwordOnBuffer(buffer, inode_byte_start + 8, inode.dataPtr[0]);
+	writeDwordOnBuffer(buffer, inode_byte_start + 12, inode.dataPtr[1]);
+	writeDwordOnBuffer(buffer, inode_byte_start + 16, inode.singleIndPtr);
+	writeDwordOnBuffer(buffer, inode_byte_start + 20, inode.doubleIndPtr);
+
+	if(write_sector(inodeSector, buffer) != 0)
+		return -1;
+
+	return 0;
 }
