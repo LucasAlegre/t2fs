@@ -256,13 +256,56 @@ int getRecordFromNumber(DWORD inodeNumber, int pointer, DIRENT2 *dirent) {
 }
 
 int getLastDirInode(char *pathname, Inode *inode){
-/*
-   Exemple: /a/b/c
-   Return b inode
-   retornar qualquer coisa diferente de 0 se qualquer coisa no caminho estiver errada
+	int isAbsolute = (*pathname == '/');
+	int count = 0;
 
-*/
-	return -1;
+	char *path;
+	char split[] = "/";
+	char* token;
+
+	Inode parent;
+	Record record;
+
+	path = malloc(sizeof(char) * (strlen(pathname) + 1));
+	memset(path, '\0', sizeof(path));
+	strncpy(path, pathname, strlen(pathname));
+
+	if(isAbsolute) {	// ABSOLUTE PATH
+		record.inodeNumber = 0;
+	} else {			// RELATIVE PATH
+		record.inodeNumber = currentDirInode;
+	}
+
+	token = strtok(pathname, split);
+	while(token != NULL) {
+		if(getInodeFromInodeNumber(record.inodeNumber, &parent) != 0) {
+			free(path);
+			return -1;
+		}
+		
+		if(getRecordFromDir(parent, token, &record) != 0) {
+			free(path);
+			return -2;
+		}
+
+		token = strtok(NULL, split);
+		count++;
+	}
+
+
+	if(count == 0) { // TRATAR CASO ESPECIAL (pathname vazio ou /)
+		if(getInodeFromInodeNumber(record.inodeNumber, &parent) != 0 ||
+			getRecordFromDir(parent, "..", &record) != 0 ||
+			getInodeFromInodeNumber(record.inodeNumber, &parent) != 0) {
+
+			free(path);
+			return -3;
+		}
+	}
+	
+	free(path);
+	*inode = parent;
+	return 0;
 }
 
 BOOL isDirEmpty(Inode *dirInode){return FALSE;}
@@ -484,3 +527,6 @@ void fixPath(char* path) {
     strcat(path, "/");
 }
 
+int getRootInode(Inode* inode) {
+	return getInodeFromInodeNumber(0, inode);
+}
