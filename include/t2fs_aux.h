@@ -219,10 +219,4 @@ Função: Remove .s e ..s de um caminho
 -----------------------------------------------------------------------------*/
 void fixPath(char* path);
 
-/*-----------------------------------------------------------------------------
-Função: Acha o Inode do diretorio raiz
-Retorno: 0 == success, else error.
------------------------------------------------------------------------------*/
-int getRootInode(Inode* inode);
-
 #endif

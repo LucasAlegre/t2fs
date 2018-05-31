@@ -526,7 +526,3 @@ void fixPath(char* path) {
     }
     strcat(path, "/");
 }
-
-int getRootInode(Inode* inode) {
-	return getInodeFromInodeNumber(0, inode);
-}
