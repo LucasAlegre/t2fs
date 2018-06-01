@@ -219,4 +219,10 @@ Função: Remove .s e ..s de um caminho
 -----------------------------------------------------------------------------*/
 void fixPath(char* path);
 
+/*-----------------------------------------------------------------------------
+Função: Retorna o nome do arquivo dado um path
+        Ex: /a/b/c  ->  c
+-----------------------------------------------------------------------------*/
+void getFilenameFromPath(char *pathname, char *filename);
+
 #endif

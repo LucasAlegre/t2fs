@@ -49,6 +49,14 @@ void initializeT2fs(){
 		getInodeFromInodeNumber(0, &inode);
 		printf("Tamanho bytes: %d\n", inode.bytesFileSize);
 		printf("Tamanho blocos: %d\n", inode.blocksFileSize);
+
+		char *name = "dir1/dir11/../dir11/file111\0";
+		int h = open2(name);
+		if (isFileHandleValid(h)){
+			printf("%s\n", openFiles[h].record.name);
+			printf("%d\n", openFiles[h].record.inodeNumber);
+			printf("%d\n", openFiles[h].record.TypeVal);
+		}
 	}
 }
 
@@ -235,18 +243,18 @@ int getRecordFromDir(Inode dirInode, char *filename, Record *recordOut){
 	return -1;
 }
 
-int getRecordFromPath(char *filename, Record *recordOut){
+int getRecordFromPath(char *pathname, Record *recordOut){
 
-	//int i, j;
-	//Record record;
-	/*
-	/home/a
-	inode = primeiroinode relativo ou absoluto
-	while nao chegou no fim
-		getRecordFromDir(inode, home, &record)
-		inode = record.inode
+	Inode dirInode;
+	char filename[MAX_FILE_NAME_SIZE+1];
 
-	*/
+	if(getLastDirInode(pathname, &dirInode) != 0)
+		return -1;
+
+	getFilenameFromPath(pathname, filename);
+	if(getRecordFromDir(dirInode, filename, recordOut) != 0)
+		return -1;
+	
 	return 0;
 }
 
@@ -257,11 +265,12 @@ int getRecordFromNumber(DWORD inodeNumber, int pointer, DIRENT2 *dirent) {
 
 int getLastDirInode(char *pathname, Inode *inode){
 	int isAbsolute = (*pathname == '/');
+
 	int count = 0;
 
 	char *path;
 	char split[] = "/";
-	char* token;
+	char *token;
 
 	Inode parent;
 	Record record;
@@ -276,8 +285,10 @@ int getLastDirInode(char *pathname, Inode *inode){
 		record.inodeNumber = currentDirInode;
 	}
 
-	token = strtok(pathname, split);
+	token = strtok(path, split);
+	
 	while(token != NULL) {
+
 		if(getInodeFromInodeNumber(record.inodeNumber, &parent) != 0) {
 			free(path);
 			return -1;
@@ -443,7 +454,7 @@ BOOL isDirHandleValid(DIR2 handle){
 }
 
 BOOL isFileHandleValid(FILE2 handle){
-	if(handle < 0 || handle >= MAX_OPEN_FILES || openDirs[handle].record.TypeVal != TYPEVAL_REGULAR)
+	if(handle < 0 || handle >= MAX_OPEN_FILES || openFiles[handle].record.TypeVal != TYPEVAL_REGULAR)
 		return FALSE;
 	else
 		return TRUE;
@@ -525,4 +536,21 @@ void fixPath(char* path) {
         token = strtok(NULL, split);
     }
     strcat(path, "/");
+}
+
+void getFilenameFromPath(char *pathname, char *filename){
+	char *path;
+	char *aux;
+	path = malloc(sizeof(char) * (strlen(pathname) + 1));
+	memset(path, '\0', sizeof(path));
+	strncpy(path, pathname, strlen(pathname));
+
+	aux = strtok(path, "/");
+	strcpy(filename, aux);
+
+	while(aux != NULL){
+		strcpy(filename, aux);
+		aux = strtok(NULL, "/");
+	}
+	free(path);
 }

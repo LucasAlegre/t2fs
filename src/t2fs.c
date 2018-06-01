@@ -76,6 +76,7 @@ FILE2 open2 (char *filename){
 	if(getRecordFromPath(filename, &record) != 0){
 		return -1;
 	}
+
 	if(record.TypeVal == TYPEVAL_REGULAR){
 		openFiles[freeHandle].record = record;
 		openFiles[freeHandle].currentPointer = 0;
