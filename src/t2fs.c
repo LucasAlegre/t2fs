@@ -46,7 +46,7 @@ FILE2 create2 (char *filename){
 
 	if(addRecordOnDir(dirInode, record) != 0)
 		return -1;
-	
+
 	return open2(filename);
 }
 
@@ -54,18 +54,28 @@ FILE2 create2 (char *filename){
 int delete2 (char *filename){
 	initializeT2fs();
 
-	// Inode dirInode, fileInode;
-	// Record record;
-	//if getLastDirInode(filenameCompleto, &dirInode) == 0
-	//    if(getRecordFromDir(dirInode, filenameSohArquivo, &record) == 0)
-	//		  if(!isOpen(record.inode) && record.Typeval == TYPEVAL_REGULAR)
-	  	//	    
-		//      record.Typeval = TYPEVAL_INVALIDO;
-		//      removeAllDataFromInode(record.inode);
-		//      setBitmap2 (BITMAP_INODE, record.inode, 0);
-	    //      record.inodeNumber = INVALID_PTR:
-	    //      updateRecord(dirInode, record) --> procura pelo nome
+	Inode dirInode;
+	Record record;
+	char filenameSohArquivo[MAX_FILE_NAME_SIZE+1];
 
+	if(getLastDirInode(filename, &dirInode) != 0)
+		return -1;
+
+	getFilenameFromPath(filename, filenameSohArquivo);
+	if(getRecordFromDir(dirInode, filenameSohArquivo, &record) != 0)
+		return -1;
+
+	if(!isFileOpen(record.inodeNumber) && record.TypeVal == TYPEVAL_REGULAR){	 
+		record.TypeVal = TYPEVAL_INVALIDO;
+		removeAllDataFromInode(record.inodeNumber);
+		setBitmap2 (BITMAP_INODE, record.inodeNumber, 0);
+	    record.inodeNumber = INVALID_PTR;
+	    if(updateRecord(dirInode, record, TYPEVAL_REGULAR) != 0)
+	    	return -1;
+
+	    return 0;
+	}
+	
 	return -1;
 }
 
