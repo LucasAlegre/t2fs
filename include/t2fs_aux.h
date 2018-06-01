@@ -104,7 +104,7 @@ Função: Retorna na variavel record a entrada com o nome dado no bloco de diret
 Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
 	Em caso de erro, será retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
-int gerRecordFromDir(Inode dirInode, char *filename, Record *recordOut);
+int getRecordFromDir(Inode dirInode, char *filename, Record *recordOut);
 
 /*------------------------TO DO-----------------------------------------------------
 Função: Retorna na variavel record a entrada do arquivo com caminho (absoluto ou relativo) em pathname

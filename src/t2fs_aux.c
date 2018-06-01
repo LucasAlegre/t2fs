@@ -50,13 +50,23 @@ void initializeT2fs(){
 		printf("Tamanho bytes: %d\n", inode.bytesFileSize);
 		printf("Tamanho blocos: %d\n", inode.blocksFileSize);
 
+		/*
 		char *name = "dir1/dir11/../dir11/file111\0";
 		int h = open2(name);
 		if (isFileHandleValid(h)){
 			printf("%s\n", openFiles[h].record.name);
 			printf("%d\n", openFiles[h].record.inodeNumber);
 			printf("%d\n", openFiles[h].record.TypeVal);
+		}*/
+
+		int h = create2("/dir1/dir11/batata\0");
+		printf("%d\n", h);
+		if (isFileHandleValid(h)){
+			printf("%s\n", openFiles[h].record.name);
+			printf("%d\n", openFiles[h].record.inodeNumber);
+			printf("%d\n", openFiles[h].record.TypeVal);
 		}
+
 	}
 }
 
@@ -295,6 +305,11 @@ int getLastDirInode(char *pathname, Inode *inode){
 		}
 		
 		if(getRecordFromDir(parent, token, &record) != 0) {
+			if(strtok(NULL, split) == NULL){  // Era o nome do arquivo -> O arquivo final não precisa existir desde que o lastDir exista
+				*inode = parent;
+				free(path);
+				return 0;
+			}
 			free(path);
 			return -2;
 		}
@@ -302,7 +317,6 @@ int getLastDirInode(char *pathname, Inode *inode){
 		token = strtok(NULL, split);
 		count++;
 	}
-
 
 	if(count == 0) { // TRATAR CASO ESPECIAL (pathname vazio ou /)
 		if(getInodeFromInodeNumber(record.inodeNumber, &parent) != 0 ||
@@ -340,8 +354,9 @@ int addRecordOnDir(Inode dirInode, Record record){
 	getRecordsFromEntryBlock(dirInode.dataPtr[0], records);
 	for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
 		if(records[i].TypeVal == TYPEVAL_INVALIDO){
-			if(writeRecordOnDir(dirInode.dataPtr[0], record, i) == 0)
+			if(writeRecordOnDir(dirInode.dataPtr[0], record, i) == 0){
 				return 0;
+			}
 		}
 	}
 
@@ -392,16 +407,19 @@ int writeRecordOnDir(DWORD blockNum, Record record, int recordNum){
 	int i;
 	int sector = blockNum*BLOCK_SIZE + (recordNum*RECORD_SIZE)/(SECTOR_SIZE);
 	int byte_start = (recordNum % RECORD_PER_SECTOR)*RECORD_SIZE;
-	if(read_sector(sector, buffer) != 0)
+	if(read_sector(sector, buffer) != 0){
+		printf("Erro leitura do setor %d\n", sector);
 		return -1;
+	}
 
 	buffer[byte_start] = record.TypeVal;
 	for(i = 0; i < 59; i++){
 		buffer[1 + i + byte_start] = record.name[i];
 	}
 	writeDwordOnBuffer(buffer, byte_start + 60, record.inodeNumber);
-	if(write_sector(sector, buffer) != 0)
+	if(write_sector(sector, buffer) != 0){
 		return -1;
+	}
 
 	return 0;
 }

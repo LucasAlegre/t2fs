@@ -25,24 +25,29 @@ int identify2 (char *name, int size){
 FILE2 create2 (char *filename){
 	initializeT2fs();
 
-	// Inode dirInode, fileInode;
-	// Record record;
-	//if getLastDirInode(filenameCompleto, &dirInode) == 0
-	//    if(getRecordFromDir(dirInode, filenameSohArquivo, &record) == 0)
-	//          return -1; //arquivo ja existe
-	//	 else
-	//		strcpy(record.name, filenameSohArquivo);
-	//      record.Typeval = TYPEVAL_REGULAR;
-	//      int inodeNum = initNewFileInode();
-	//		if(inodeNum != -1)
-    //			record.inodeNumber = inodeNum;
-	//      else
-	//         return -1 
-	//      if(addRecordOnDir(dirInode, record) != 0)
-	//			return -1;
-	//      return open2(filenameCompleto)
+	Inode dirInode;
+	Record record;
+	char filenameSohArquivo[MAX_FILE_NAME_SIZE+1];
 
-	return -1;
+	if(getLastDirInode(filename, &dirInode) != 0)
+		return -1;
+
+	getFilenameFromPath(filename, filenameSohArquivo);
+	if(getRecordFromDir(dirInode, filenameSohArquivo, &record) == 0)
+		return -1; //arquivo ja existe
+
+	strcpy(record.name, filenameSohArquivo);
+	record.TypeVal = TYPEVAL_REGULAR;
+	int inodeNum = initNewFileInode();
+	if(inodeNum == -1)
+		return -1;
+
+    record.inodeNumber = inodeNum;
+
+	if(addRecordOnDir(dirInode, record) != 0)
+		return -1;
+	
+	return open2(filename);
 }
 
 
@@ -89,10 +94,11 @@ FILE2 open2 (char *filename){
 int close2 (FILE2 handle){
 	initializeT2fs();
 
-	// if( isFileHandleValid(handle))
-	// 		openFiles[handle].record.Typeval = TYPEVAL_INVALIDO;
-	//		openFiles[handle].record.inodeNumber = INVALID_PTR;
-	//      return 0;
+	if(isFileHandleValid(handle)){
+	 	openFiles[handle].record.TypeVal = TYPEVAL_INVALIDO;
+		openFiles[handle].record.inodeNumber = INVALID_PTR;
+        return 0;
+    }
 
 	return -1;
 }
