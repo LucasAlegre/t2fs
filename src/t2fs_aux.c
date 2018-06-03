@@ -50,12 +50,26 @@ void initializeT2fs(){
 		printf("Tamanho bytes: %d\n", inode.bytesFileSize);
 		printf("Tamanho blocos: %d\n", inode.blocksFileSize);
 
+		/*
 		char *name = "dir1/dir11/../dir11/file111\0";
 		int h = open2(name);
 		if (isFileHandleValid(h)){
 			printf("%s\n", openFiles[h].record.name);
 			printf("%d\n", openFiles[h].record.inodeNumber);
 			printf("%d\n", openFiles[h].record.TypeVal);
+		}*/
+
+		int h = create2("/dir1/dir11/batata\0");
+		printf("%d\n", h);
+		if (isFileHandleValid(h)){
+			printf("%s\n", openFiles[h].record.name);
+			printf("%d\n", openFiles[h].record.inodeNumber);
+			printf("%d\n", openFiles[h].record.TypeVal);
+		}
+		close2(h);
+		if(delete2("/dir1/dir11/batata\0") == 0){
+			h = open2("/dir1/dir11/batata\0");
+			printf("%d\n", h);
 		}
 	}
 }
@@ -199,6 +213,9 @@ int getRecordFromDir(Inode dirInode, char *filename, Record *recordOut){
 	int i, j;
 	// Search on direct pointers
 	Record record;
+	DWORD pointers[PTR_PER_SECTOR*BLOCK_SIZE];
+	DWORD doublePointers[PTR_PER_SECTOR*BLOCK_SIZE];
+
 	for(i = 0; i < 2; i++){
 		if(dirInode.dataPtr[i] != INVALID_PTR){
 			if(getRecordFromEntryBlock(dirInode.dataPtr[i], filename, &record) == 0){
@@ -209,9 +226,8 @@ int getRecordFromDir(Inode dirInode, char *filename, Record *recordOut){
 	}
 	// Search on simple indirection
 	if(dirInode.singleIndPtr != INVALID_PTR){
-		DWORD pointers[PTR_PER_SECTOR*superBlock.blockSize];
 		getPointers(dirInode.singleIndPtr, pointers);
-		for(i = 0; i < PTR_PER_SECTOR*superBlock.blockSize; i++){
+		for(i = 0; i < PTR_PER_SECTOR*BLOCK_SIZE; i++){
 			if(pointers[i] != INVALID_PTR){
 				if(getRecordFromEntryBlock(pointers[i], filename, &record) == 0){
 					*recordOut = record;
@@ -221,14 +237,12 @@ int getRecordFromDir(Inode dirInode, char *filename, Record *recordOut){
 		}
 	}
 	// Search on double indirection
-	if(dirInode.doubleIndPtr != INVALID_PTR){
-		DWORD doublePointers[PTR_PER_SECTOR*superBlock.blockSize];
+	if(dirInode.doubleIndPtr != INVALID_PTR){	
 		getPointers(dirInode.doubleIndPtr, doublePointers);
-		for(i = 0; i < PTR_PER_SECTOR*superBlock.blockSize; i++){
+		for(i = 0; i < PTR_PER_SECTOR*BLOCK_SIZE; i++){
 			if(doublePointers[i] != INVALID_PTR){
-				DWORD pointers[PTR_PER_SECTOR*superBlock.blockSize];
 				getPointers(doublePointers[i], pointers);
-				for(j = 0; j < PTR_PER_SECTOR*superBlock.blockSize; j++){
+				for(j = 0; j < PTR_PER_SECTOR*BLOCK_SIZE; j++){
 					if(pointers[j] != INVALID_PTR){
 						if(getRecordFromEntryBlock(pointers[j], filename, &record) == 0){
 							*recordOut = record;
@@ -356,6 +370,11 @@ int getLastDirInode(char *pathname, Inode *inode){
 		}
 		
 		if(getRecordFromDir(parent, token, &record) != 0) {
+			if(strtok(NULL, split) == NULL){  // Era o nome do arquivo -> O arquivo final não precisa existir desde que o lastDir exista
+				*inode = parent;
+				free(path);
+				return 0;
+			}
 			free(path);
 			return -2;
 		}
@@ -363,7 +382,6 @@ int getLastDirInode(char *pathname, Inode *inode){
 		token = strtok(NULL, split);
 		count++;
 	}
-
 
 	if(count == 0) { // TRATAR CASO ESPECIAL (pathname vazio ou /)
 		if(getInodeFromInodeNumber(record.inodeNumber, &parent) != 0 ||
@@ -382,9 +400,109 @@ int getLastDirInode(char *pathname, Inode *inode){
 
 BOOL isDirEmpty(Inode *dirInode){return FALSE;}
 
-void removeAllDataFromInode(Inode *inode){}
+void removeAllDataFromInode(int inodeNumber){
+	Inode inode;
+	DWORD pointers[PTR_PER_SECTOR*BLOCK_SIZE];
+	DWORD doublePointers[PTR_PER_SECTOR*BLOCK_SIZE];
+	int i, j;
 
-void updateRecord(Inode *inode, Record record){}
+	getInodeFromInodeNumber(inodeNumber, &inode);
+
+	// Libera blocos diretos
+	for(i = 0; i < 2; i++){
+		if(inode.dataPtr[i] != INVALID_PTR){
+			setBitmap2(BITMAP_DADOS, inode.dataPtr[i], 0);
+		}
+	}
+
+ 	// Libera indireção simples
+	if(inode.singleIndPtr != INVALID_PTR){
+		getPointers(inode.singleIndPtr, pointers);
+		for(i = 0; i < PTR_PER_SECTOR*BLOCK_SIZE; i++){
+			if(pointers[i] != INVALID_PTR){
+				setBitmap2(BITMAP_DADOS, pointers[i], 0);
+			}
+		}
+		setBitmap2(BITMAP_DADOS, inode.singleIndPtr, 0);
+	}
+
+	// Libera indireção dupla
+	if(inode.doubleIndPtr != INVALID_PTR){
+		getPointers(inode.doubleIndPtr, doublePointers);
+		for(i = 0; i < PTR_PER_SECTOR*BLOCK_SIZE; i++){
+			if(doublePointers[i] != INVALID_PTR){
+				getPointers(doublePointers[i], pointers);
+				for(j = 0; j < PTR_PER_SECTOR*BLOCK_SIZE; j++){
+					if(pointers[j] != INVALID_PTR){
+						setBitmap2(BITMAP_DADOS, pointers[j], 0);
+					}
+				}
+				setBitmap2(BITMAP_DADOS, doublePointers[i], 0);
+			}
+		}
+		setBitmap2(BITMAP_DADOS, inode.doubleIndPtr, 0);
+	}
+}
+
+int updateRecord(Inode dirInode, Record recordToChange, BYTE typeVal){
+
+	int i, j, p;
+	Record records[RECORD_PER_SECTOR*BLOCK_SIZE];
+	DWORD pointers[PTR_PER_SECTOR*BLOCK_SIZE];
+	DWORD doublePointers[PTR_PER_SECTOR*BLOCK_SIZE];
+
+	for(p = 0; p < 2; p++){
+		if(dirInode.dataPtr[p] != INVALID_PTR){
+			getRecordsFromEntryBlock(dirInode.dataPtr[p], records);
+			for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
+				if(records[i].TypeVal == typeVal && strcmp(records[i].name, recordToChange.name) == 0){
+					if(writeRecordOnDir(dirInode.dataPtr[p], recordToChange, i) == 0){
+						return 0;
+					}
+				}
+			}
+		}
+	}
+
+	if(dirInode.singleIndPtr != INVALID_PTR){
+		getPointers(dirInode.singleIndPtr, pointers);
+		for(i = 0; i < PTR_PER_SECTOR*BLOCK_SIZE; i++){
+			if(pointers[i] != INVALID_PTR){
+				getRecordsFromEntryBlock(pointers[i], records);
+				for(j = 0; j < RECORD_PER_SECTOR*BLOCK_SIZE; j++){
+					if(records[i].TypeVal == typeVal && strcmp(records[i].name, recordToChange.name) == 0){
+						if(writeRecordOnDir(pointers[i], recordToChange, i) == 0){
+							return 0;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if(dirInode.doubleIndPtr != INVALID_PTR){
+		getPointers(dirInode.doubleIndPtr, doublePointers);
+		for(i = 0; i < PTR_PER_SECTOR*BLOCK_SIZE; i++){
+			if(doublePointers[i] != INVALID_PTR){
+				getPointers(doublePointers[i], pointers);
+				for(j = 0; j < PTR_PER_SECTOR*BLOCK_SIZE; j++){
+					if(pointers[j] != INVALID_PTR){
+						getRecordsFromEntryBlock(pointers[j], records);
+						for(p = 0; p < RECORD_PER_SECTOR*BLOCK_SIZE; p++){
+							if(records[p].TypeVal == typeVal && strcmp(records[p].name, recordToChange.name) == 0){
+								if(writeRecordOnDir(pointers[j], recordToChange, p) == 0){
+									return 0;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return -1;
+}
 
 void initNewDirInode(DWORD inodeNumber){
 /*
@@ -401,8 +519,9 @@ int addRecordOnDir(Inode dirInode, Record record){
 	getRecordsFromEntryBlock(dirInode.dataPtr[0], records);
 	for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
 		if(records[i].TypeVal == TYPEVAL_INVALIDO){
-			if(writeRecordOnDir(dirInode.dataPtr[0], record, i) == 0)
+			if(writeRecordOnDir(dirInode.dataPtr[0], record, i) == 0){
 				return 0;
+			}
 		}
 	}
 
@@ -453,16 +572,19 @@ int writeRecordOnDir(DWORD blockNum, Record record, int recordNum){
 	int i;
 	int sector = blockNum*BLOCK_SIZE + (recordNum*RECORD_SIZE)/(SECTOR_SIZE);
 	int byte_start = (recordNum % RECORD_PER_SECTOR)*RECORD_SIZE;
-	if(read_sector(sector, buffer) != 0)
+	if(read_sector(sector, buffer) != 0){
+		printf("Erro leitura do setor %d\n", sector);
 		return -1;
+	}
 
 	buffer[byte_start] = record.TypeVal;
 	for(i = 0; i < 59; i++){
 		buffer[1 + i + byte_start] = record.name[i];
 	}
 	writeDwordOnBuffer(buffer, byte_start + 60, record.inodeNumber);
-	if(write_sector(sector, buffer) != 0)
+	if(write_sector(sector, buffer) != 0){
 		return -1;
+	}
 
 	return 0;
 }
@@ -614,4 +736,22 @@ void getFilenameFromPath(char *pathname, char *filename){
 		aux = strtok(NULL, "/");
 	}
 	free(path);
+}
+
+BOOL isFileOpen(int inodeNumber){
+	int i;
+	for(i = 0; i < MAX_OPEN_FILES; i++){
+		if(openFiles[i].record.inodeNumber == inodeNumber)
+			return TRUE;
+	}
+	return FALSE;
+}
+
+BOOL isDirOpen(int inodeNumber){
+	int i;
+	for(i = 0; i < MAX_OPEN_DIR; i++){
+		if(openDirs[i].record.inodeNumber == inodeNumber)
+			return TRUE;
+	}
+	return FALSE;
 }

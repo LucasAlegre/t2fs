@@ -104,7 +104,7 @@ Função: Retorna na variavel record a entrada com o nome dado no bloco de diret
 Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
 	Em caso de erro, será retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
-int gerRecordFromDir(Inode dirInode, char *filename, Record *recordOut);
+int getRecordFromDir(Inode dirInode, char *filename, Record *recordOut);
 
 /*------------------------TO DO-----------------------------------------------------
 Função: Retorna na variavel record a entrada do arquivo com caminho (absoluto ou relativo) em pathname
@@ -136,22 +136,24 @@ OBS: Ignorar . e ..
 -----------------------------------------------------------------------------*/
 BOOL isDirEmpty(Inode *dirInode);
 
-/*------------------------TO DO-----------------------------------------------------
+/*-----------------------------------------------------------------------------
 Função: Libera todos os blocos de dados do inode
 -----------------------------------------------------------------------------*/
-void removeAllDataFromInode(Inode *inode);
+void removeAllDataFromInode(int inodeNumber);
 
-/*------------------------TO DO-----------------------------------------------------
+/*-----------------------------------------------------------------------------
 Função: Procura pela ocorrência do record de mesmo nome do record parâmetro e substitui pelo passado em parâmetro
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
-void updateRecord(Inode *inode, Record record);
+int updateRecord(Inode dirInode, Record recordToChange, BYTE typeVal);
 
 /*------------------------TO DO-----------------------------------------------------
 Função: Inicializa um inode para um novo diretório
 -----------------------------------------------------------------------------*/
 void initNewDirInode(DWORD inodeNumber);
 
-/*------------------------TO DO-----------------------------------------------------
+/*-----------------------------------------------------------------------------
 Função: Acidiona a entrada recebida em record no inode
 Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
 	Em caso de erro, será retornado um valor diferente de zero.
@@ -224,5 +226,15 @@ Função: Retorna o nome do arquivo dado um path
         Ex: /a/b/c  ->  c
 -----------------------------------------------------------------------------*/
 void getFilenameFromPath(char *pathname, char *filename);
+
+/*-----------------------------------------------------------------------------
+Função: Retorna TRUE se arquivo aberto, FALSE caso contrário
+-----------------------------------------------------------------------------*/
+BOOL isFileOpen(int inodeNumber);
+
+/*-----------------------------------------------------------------------------
+Função: Retorna TRUE se diretório aberto, FALSE caso contrário
+-----------------------------------------------------------------------------*/
+BOOL isDirOpen(int inodeNumber);
 
 #endif
