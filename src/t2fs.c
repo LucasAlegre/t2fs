@@ -306,19 +306,33 @@ DIR2 opendir2 (char *pathname){
 int readdir2 (DIR2 handle, DIRENT2 *dentry){
 	initializeT2fs();
 
+	Record record;
 	DIRENT2 ent;
+	Inode inode;
 
 	if(openDirs[handle].record.TypeVal != TYPEVAL_DIRETORIO) {
 		printError("Handle Invalido");
 		return -1;
 	}
 
-	if(getRecordFromNumber(openDirs[handle].record.inodeNumber, openDirs[handle].currentPointer, &ent) != 0) {
+	if(getInodeFromInodeNumber(openDirs[handle].record.inodeNumber, &inode) != 0 ||
+	 getRecordFromNumber(openDirs[handle].record.inodeNumber, openDirs[handle].currentPointer, &record) != 0) {
 		return -2;
 	}
 
 	openDirs[handle].currentPointer++;
-	*dentry = ent;
+
+	if(record.TypeVal == TYPEVAL_INVALIDO) {
+		return readdir2(handle, dentry);
+	}
+
+	for(i = 0; i <= MAX_FILE_NAME_SIZE; i++)
+		dentry->name[i] = '\0';
+
+	strncpy(dentry->name, record.name, MAX_FILE_NAME_SIZE);
+	dentry->fileType = record.TypeVal;
+	dentry->fileSize = inode.bytesFileSize;
+
 	return 0;
 }
 

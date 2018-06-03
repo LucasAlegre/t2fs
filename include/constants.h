@@ -28,5 +28,8 @@
 
 #define ROOT_INODE 0
 
+#define RECORD_PER_BLOCK (superBlock.blockSize*4)
+#define POINTERS_PER_BLOCK (superBlock.blockSize*64)
+
 
 #endif
