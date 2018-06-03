@@ -259,7 +259,68 @@ int getRecordFromPath(char *pathname, Record *recordOut){
 }
 
 int getRecordFromNumber(DWORD inodeNumber, int pointer, DIRENT2 *dirent) {
-	// TODO
+	Inode inode;
+	int block = inodeNumber / RECORD_PER_SECTOR;
+	int blockRecord = inodeNumber % RECORD_PER_SECTOR;
+	DWORD sector;
+
+	if(getInodeFromInodeNumber(inodeNumber, &inode) != 0) {
+		return -1;
+	}
+
+	if (block == 0 || block == 1) { // DIRECT DATA POINTERSL
+		sector = inode.dataPtr[block];
+	} else if() {	// SIMPLE INDIRECTION
+
+	} else {		// DOUBLE INDIRECTION
+
+	}
+
+
+
+	Record record;
+	for(i = 0; i < 2; i++){
+		if(dirInode.dataPtr[i] != INVALID_PTR){
+			if(getRecordFromEntryBlock(dirInode.dataPtr[i], filename, &record) == 0){
+				*recordOut = record;
+				return 0;
+			}
+		}
+	}
+	// Search on simple indirection
+	if(dirInode.singleIndPtr != INVALID_PTR){
+		DWORD pointers[PTR_PER_SECTOR*superBlock.blockSize];
+		getPointers(dirInode.singleIndPtr, pointers);
+		for(i = 0; i < PTR_PER_SECTOR*superBlock.blockSize; i++){
+			if(pointers[i] != INVALID_PTR){
+				if(getRecordFromEntryBlock(pointers[i], filename, &record) == 0){
+					*recordOut = record;
+					return 0;
+				}
+			}
+		}
+	}
+	// Search on double indirection
+	if(dirInode.doubleIndPtr != INVALID_PTR){
+		DWORD doublePointers[PTR_PER_SECTOR*superBlock.blockSize];
+		getPointers(dirInode.doubleIndPtr, doublePointers);
+		for(i = 0; i < PTR_PER_SECTOR*superBlock.blockSize; i++){
+			if(doublePointers[i] != INVALID_PTR){
+				DWORD pointers[PTR_PER_SECTOR*superBlock.blockSize];
+				getPointers(doublePointers[i], pointers);
+				for(j = 0; j < PTR_PER_SECTOR*superBlock.blockSize; j++){
+					if(pointers[j] != INVALID_PTR){
+						if(getRecordFromEntryBlock(pointers[j], filename, &record) == 0){
+							*recordOut = record;
+							return 0;
+						}
+					}
+				}
+			}
+		}
+	}
+
+
 	return -1;
 }
 
