@@ -168,7 +168,7 @@ int getRecordFromBlockWithNumber(DWORD blockNumber, int recordNumber, Record *re
 		return -1; // FILE NOT FOUND
 	}
 	
-	*record = records[i];
+	*record = records[recordNumber];
 	return 0;
 }
 
@@ -307,7 +307,7 @@ int getRecordFromNumber(DWORD inodeNumber, int pointer, Record *record) {
 		if(inode.singleIndPtr == INVALID_PTR)
 			return -1;
 
-		getPointers(dirInode.singleIndPtr, pointers);
+		getPointers(inode.singleIndPtr, pointers);
 
 		block -= 2;
 		blockAddr = pointers[block];
@@ -320,7 +320,7 @@ int getRecordFromNumber(DWORD inodeNumber, int pointer, Record *record) {
 		if(inode.doubleIndPtr == INVALID_PTR)
 			return -1;
 
-		getPointers(dirInode.doubleIndPtr, pointers);
+		getPointers(inode.doubleIndPtr, pointers);
 
 		if(pointerBlock >= POINTERS_PER_BLOCK || pointers[pointerBlock] == INVALID_PTR)
 			return -1;
@@ -333,7 +333,7 @@ int getRecordFromNumber(DWORD inodeNumber, int pointer, Record *record) {
 	if(blockAddr == INVALID_PTR)
 		return -1;
 
-	return getRecordFromBlockWithNumber(blockAddr, recordNumber, &record);
+	return getRecordFromBlockWithNumber(blockAddr, recordNumber, record);
 }
 
 int getLastDirInode(char *pathname, Inode *inode){

@@ -255,10 +255,10 @@ int rmdir2 (char *pathname){
 
 int chdir2 (char *pathname){
 	initializeT2fs();
-/*
+
 	Record record;
 
-	if(getRecordFromPath(pathname) != 0) {
+	if(getRecordFromPath(pathname, &record) != 0) {
 		printError("Arquivo não encontrado!");
 		return -1;
 	}
@@ -269,8 +269,20 @@ int chdir2 (char *pathname){
 	}
 
 	currentDirInode = record.inodeNumber;
-	strncpy(currentPath, pathname, MAX_FILE_NAME_SIZE+1); // TODO: Fix path if used relative path
-*/
+
+	if(*pathname == '/') {
+		strncpy(currentPath, pathname, MAX_FILE_NAME_SIZE+1);
+		fixPath(currentPath);
+	} else {
+		char path[MAX_FILE_NAME_SIZE * 2 + 2] = {0};
+		strncpy(path, currentPath, MAX_FILE_NAME_SIZE+1);
+
+		strcat(path, pathname);
+
+		fixPath(path);
+		strncpy(currentPath, path, MAX_FILE_NAME_SIZE+1);
+	}
+
 	return 0;
 }
 
@@ -286,11 +298,11 @@ DIR2 opendir2 (char *pathname){
 	initializeT2fs();
 
 	DIR2 freeHandle = getFreeDirHandle(); 
-	/*if(freeHandle == -1) 
+	if(freeHandle == -1) 
 		return -1;  // OpenFiles is full
 
 	Record record;
-	if(getRecordFromPath(filename, &record) != 0){
+	if(getRecordFromPath(pathname, &record) != 0){
 		return -1;
 	} 
 
@@ -299,7 +311,7 @@ DIR2 opendir2 (char *pathname){
 	}
 
 	openDirs[freeHandle].record = record;
-	openDirs[freeHandle].currentPointer = 0;*/
+	openDirs[freeHandle].currentPointer = 0;
 	return freeHandle;
 }
 
@@ -307,8 +319,8 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry){
 	initializeT2fs();
 
 	Record record;
-	DIRENT2 ent;
 	Inode inode;
+	int i;
 
 	if(openDirs[handle].record.TypeVal != TYPEVAL_DIRETORIO) {
 		printError("Handle Invalido");
