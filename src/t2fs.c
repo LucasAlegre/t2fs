@@ -323,6 +323,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry){
 
 	Record record;
 	Inode inode;
+	Inode recordInode;
 	int i;
 
 	if(!isDirHandleValid(handle)) {
@@ -344,9 +345,10 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry){
 	for(i = 0; i <= MAX_FILE_NAME_SIZE; i++)
 		dentry->name[i] = '\0';
 
+	getInodeFromInodeNumber(record.inodeNumber, &recordInode);
 	strncpy(dentry->name, record.name, MAX_FILE_NAME_SIZE);
 	dentry->fileType = record.TypeVal;
-	dentry->fileSize = inode.bytesFileSize;
+	dentry->fileSize = recordInode.bytesFileSize;
 
 	return 0;
 }
