@@ -36,8 +36,8 @@ int main(){
 			h = open2("/dir1/dir11/batata\0");
 			printf("%d\n", h);
 		}*/
-			Record records[RECORD_PER_BLOCK];
-	/*int i;
+			/*Record records[RECORD_PER_BLOCK];
+	int i;
 	getInodeFromInodeNumber(0, &inode);
 	DWORD pointers[POINTERS_PER_BLOCK];
 	getPointers(inode.singleIndPtr, pointers);

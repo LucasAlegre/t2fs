@@ -499,7 +499,7 @@ int addRecordOnDir(Inode *dirInode, Record record){
 	for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
 		if(records[i].TypeVal == TYPEVAL_INVALIDO){
 			if(writeRecordOnDir(dirInode->dataPtr[0], record, i) == 0){
-				return 0;
+				return updateDirInode(*dirInode);
 			}
 		}
 	}
@@ -514,7 +514,7 @@ int addRecordOnDir(Inode *dirInode, Record record){
 	for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
 		if(records[i].TypeVal == TYPEVAL_INVALIDO){
 			if(writeRecordOnDir(dirInode->dataPtr[1], record, i) == 0)
-				return 0;
+				return updateDirInode(*dirInode);
 		}
 	}
 
@@ -531,7 +531,7 @@ int addRecordOnDir(Inode *dirInode, Record record){
 			for(j = 0; j < RECORD_PER_SECTOR*BLOCK_SIZE; j++){
 				if(records[j].TypeVal == TYPEVAL_INVALIDO){
 					if(writeRecordOnDir(pointers[i], record, j) == 0)
-						return 0;
+						return updateDirInode(*dirInode);
 				}
 			}
 		}
@@ -541,7 +541,7 @@ int addRecordOnDir(Inode *dirInode, Record record){
 				return -1;
 			writePointerOnBlock(dirInode->singleIndPtr, pointers[i], i);
 			writeRecordOnDir(pointers[i], record, 0);
-			return 0;
+			return updateDirInode(*dirInode);
 		}
 	}
 
@@ -566,7 +566,7 @@ int addRecordOnDir(Inode *dirInode, Record record){
 				for(j = 0; j < RECORD_PER_SECTOR*BLOCK_SIZE; j++){
 					if(records[j].TypeVal == TYPEVAL_INVALIDO){
 						if(writeRecordOnDir(pointers[i], record, j) == 0)
-							return 0;
+							return updateDirInode(*dirInode);
 					}
 				}
 			}
@@ -576,7 +576,7 @@ int addRecordOnDir(Inode *dirInode, Record record){
 					return -1;
 				writePointerOnBlock(doublePointers[k], pointers[i], i);
 				writeRecordOnDir(pointers[i], record, 0);
-				return 0;
+				return updateDirInode(*dirInode);
 			}
 		}
 	}

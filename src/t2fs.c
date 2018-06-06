@@ -49,8 +49,6 @@ FILE2 create2 (char *filename){
 		setBitmap2(BITMAP_INODE, inodeNum, 0);
 		return -1;
 	}
-	if(updateDirInode(dirInode) != 0)
-		return -1;
 
 	return open2(filename);
 }
