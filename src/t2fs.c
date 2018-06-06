@@ -44,7 +44,12 @@ FILE2 create2 (char *filename){
 
     record.inodeNumber = inodeNum;
 
-	if(addRecordOnDir(dirInode, record) != 0)
+	if(addRecordOnDir(&dirInode, record) != 0){
+		removeAllDataFromInode(inodeNum);
+		setBitmap2(BITMAP_INODE, inodeNum, 0);
+		return -1;
+	}
+	if(updateDirInode(dirInode) != 0)
 		return -1;
 
 	return open2(filename);
@@ -322,7 +327,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry){
 	Inode inode;
 	int i;
 
-	if(openDirs[handle].record.TypeVal != TYPEVAL_DIRETORIO) {
+	if(!isDirHandleValid(handle)) {
 		printError("Handle Invalido");
 		return -1;
 	}
@@ -351,7 +356,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry){
 int closedir2 (DIR2 handle){
 	initializeT2fs();
 
-	if(openDirs[handle].record.TypeVal != TYPEVAL_DIRETORIO) {
+	if(!isDirHandleValid(handle)) {
 		return -1;
 	}
 

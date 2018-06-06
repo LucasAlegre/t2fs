@@ -569,7 +569,7 @@ void cmdLs(void) {
     // Coloca diretorio na tela
     DIRENT2 dentry;
     while ( readdir2(d, &dentry) == 0 ) {
-        printf ("%c %8u %s\n", (dentry.fileType==0x02?'d':'-'), dentry.fileSize, dentry.name);
+        printf ("%c %d %s\n", (dentry.fileType==0x02?'d':'-'), dentry.fileSize, dentry.name);
     }
 
     closedir2(d);
