@@ -27,9 +27,10 @@ FILE2 create2 (char *filename){
 
 	Inode dirInode;
 	Record record;
+	int number;
 	char filenameSohArquivo[MAX_FILE_NAME_SIZE+1];
 
-	if(getLastDirInode(filename, &dirInode) != 0)
+	if(getLastDirInode(filename, &dirInode, &number) != 0)
 		return -1;
 
 	getFilenameFromPath(filename, filenameSohArquivo);
@@ -59,9 +60,10 @@ int delete2 (char *filename){
 
 	Inode dirInode;
 	Record record;
+	int number;
 	char filenameSohArquivo[MAX_FILE_NAME_SIZE+1];
 
-	if(getLastDirInode(filename, &dirInode) != 0)
+	if(getLastDirInode(filename, &dirInode, &number) != 0)
 		return -1;
 
 	getFilenameFromPath(filename, filenameSohArquivo);
@@ -164,7 +166,10 @@ int truncate2 (FILE2 handle){
 	if(file.record.TypeVal == TYPEVAL_REGULAR){
 		fileInode = getInodeFromInodeNumber(record.inodeNumber);
 		
-		if(file.currentPointer < fileInode.bytesFileSize + 1)
+		if(file.currentPointer < fileInode.bytesFileSize + 1){
+			
+
+		}
 		
 		
 
@@ -186,7 +191,6 @@ int truncate2 (FILE2 handle){
 int seek2 (FILE2 handle, DWORD offset){
 	initializeT2fs();
 
-/*
 	OpenFile file;
 	Inode fileInode;
 	file = openFiles[handle];
@@ -195,13 +199,13 @@ int seek2 (FILE2 handle, DWORD offset){
 		if(offset != -1)
 			file.currentPointer = offset;
 		else{
-			fileInode = getInodeFromInodeNumber(record.inodeNumber);
-			file.currentPointer = fileInode.bytesFileSize + 1; (not sure)
+			if(getInodeFromInodeNumber(file.record.inodeNumber, &fileInode) == 0)
+				file.currentPointer = fileInode.bytesFileSize + 1;
 		}
 		openFiles[handle] = file;
 		return 0;
 	}
-*/
+
 	return -1;
 }
 
@@ -209,25 +213,33 @@ int seek2 (FILE2 handle, DWORD offset){
 int mkdir2 (char *pathname){
 	initializeT2fs();
 
-/*
-	Inode dirInode, previousDirInode;
+	Inode previousDirInode;
 	Record record;
+	int previousDirInodeNumber;
+	char dirName[MAX_FILE_NAME_SIZE+1];
 
-	if(getLastDirInode(filenameCompleto, &dirInode) == 0){
+	if(getLastDirInode(pathname, &previousDirInode, &previousDirInodeNumber) == 0){
+		getFilenameFromPath(pathname, dirName);
 	   	if(getRecordFromDir(previousDirInode, dirName, &record) != 0){ //se esse dir não existe
 		    strcpy(record.name, dirName);
-		    record.Typeval = TYPEVAL_DIRETORIO;
-		    int inodeNum = searchBitmap2(BITMAP_INODE, 0));
+		    record.TypeVal = TYPEVAL_DIRETORIO;
+		    int inodeNum = searchBitmap2(BITMAP_INODE, 0);
 			if(inodeNum != -1)
 	    		record.inodeNumber = inodeNum;
 		    else
 		    	return -1;
-		    if(initNewDirInode(inodeNum) == 0)
-		    	if(addRecordOnDir(&previousDirInode, record) == 0)
+		    if(initNewDirInode(inodeNum, previousDirInodeNumber) == 0){
+		    	if(addRecordOnDir(&previousDirInode, record) == 0){
 		    		return 0;
+		    	}
+		    	else{
+		    		removeAllDataFromInode(inodeNum);
+					setBitmap2(BITMAP_INODE, inodeNum, 0);
+					return -1;
+		    	}
+		    }
 		}
 	}
-*/
 	return -1;
 }
 
@@ -235,23 +247,26 @@ int mkdir2 (char *pathname){
 int rmdir2 (char *pathname){
 	initializeT2fs();
 
-/*
 	Inode dirInode, previousDirInode;
 	Record record;
-	if(getLastDirInode(pathname, &previousDirInode) == 0){
+	int number;
+	char dirName[MAX_FILE_NAME_SIZE+1];
+
+	if(getLastDirInode(pathname, &previousDirInode, &number) == 0){
+		getFilenameFromPath(pathname, dirName);
 		if(getRecordFromDir(previousDirInode, dirName, &record) == 0){
-			getInodeFromInodeNumber(record.inode, &dirInode);
-			if(record.Typeval == TYPEVAL_DIRETORIO && isDirEmpty(dirInode)){ 
-	     		record.Typeval = TYPEVAL_INVALIDO;
-	     		removeAllDataFromInode(record.inode);
-	     		setBitmap2 (BITMAP_INODE, record.inode, 0);
-	     		record.inodeNumber = INVALID_PTR:
-	     		updateRecord(previousDirInode, record) --> procura pelo nome
-				return 0;
+			getInodeFromInodeNumber(record.inodeNumber, &dirInode);
+			if(record.TypeVal == TYPEVAL_DIRETORIO && isDirEmpty(dirInode) && !isDirOpen(record.inodeNumber)){ 
+	     		record.TypeVal = TYPEVAL_INVALIDO;
+	     		removeAllDataFromInode(record.inodeNumber);
+	     		setBitmap2(BITMAP_INODE, record.inodeNumber, 0);
+	     		record.inodeNumber = INVALID_PTR;
+	     		if(updateRecord(previousDirInode, record, TYPEVAL_DIRETORIO) == 0)
+					return 0;
 			}
 		}
 	}
-*/
+
 	return -1;
 }
 

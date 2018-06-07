@@ -249,8 +249,9 @@ int getRecordFromPath(char *pathname, Record *recordOut){
 
 	Inode dirInode;
 	char filename[MAX_FILE_NAME_SIZE+1];
+	int number;
 
-	if(getLastDirInode(pathname, &dirInode) != 0)
+	if(getLastDirInode(pathname, &dirInode, &number) != 0)
 		return -1;
 
 	getFilenameFromPath(pathname, filename);
@@ -314,7 +315,7 @@ int getRecordFromNumber(DWORD inodeNumber, int pointer, Record *record) {
 	return getRecordFromBlockWithNumber(blockAddr, recordNumber, record);
 }
 
-int getLastDirInode(char *pathname, Inode *inode){
+int getLastDirInode(char *pathname, Inode *inode, int *inodeNumber){
 	int isAbsolute = (*pathname == '/');
 
 	int count = 0;
@@ -336,6 +337,8 @@ int getLastDirInode(char *pathname, Inode *inode){
 		record.inodeNumber = currentDirInode;
 	}
 
+	*inodeNumber = record.inodeNumber;
+
 	token = strtok(path, split);
 	
 	while(token != NULL) {
@@ -345,6 +348,7 @@ int getLastDirInode(char *pathname, Inode *inode){
 			return -1;
 		}
 		
+		*inodeNumber = record.inodeNumber;
 		if(getRecordFromDir(parent, token, &record) != 0) {
 			if(strtok(NULL, split) == NULL){  // Era o nome do arquivo -> O arquivo final não precisa existir desde que o lastDir exista
 				*inode = parent;
@@ -363,10 +367,9 @@ int getLastDirInode(char *pathname, Inode *inode){
 		if(getInodeFromInodeNumber(record.inodeNumber, &parent) != 0 ||
 			getRecordFromDir(parent, "..", &record) != 0 ||
 			getInodeFromInodeNumber(record.inodeNumber, &parent) != 0) {
-
-			free(path);
-			return -3;
-		}
+				free(path);
+				return -3;
+			}
 	}
 	
 	free(path);
@@ -374,7 +377,67 @@ int getLastDirInode(char *pathname, Inode *inode){
 	return 0;
 }
 
-BOOL isDirEmpty(Inode *dirInode){return FALSE;}
+BOOL isDirEmpty(Inode dirInode){
+	int i, j, k;
+	Record records[RECORD_PER_SECTOR*BLOCK_SIZE];
+	DWORD pointers[PTR_PER_SECTOR*BLOCK_SIZE];
+	DWORD doublePointers[PTR_PER_SECTOR*BLOCK_SIZE];
+
+	// Direto 0
+	if(dirInode.dataPtr[0] != INVALID_PTR){
+		getRecordsFromEntryBlock(dirInode.dataPtr[0], records);
+		for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
+			if(records[i].TypeVal != TYPEVAL_INVALIDO){
+				return -1;
+			}
+		}
+	}	
+
+	if(dirInode.dataPtr[1] != INVALID_PTR){
+		getRecordsFromEntryBlock(dirInode.dataPtr[1], records);
+		for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
+			if(records[i].TypeVal != TYPEVAL_INVALIDO){
+				return -1;
+			}
+		}
+	}
+
+	if(dirInode.singleIndPtr != INVALID_PTR){
+		getPointers(dirInode.singleIndPtr, pointers);
+		for(i = 0; i < PTR_PER_SECTOR*BLOCK_SIZE; i++){
+			if(pointers[i] != INVALID_PTR){
+				getRecordsFromEntryBlock(pointers[i], records);
+				for(j = 0; j < RECORD_PER_SECTOR*BLOCK_SIZE; j++){
+					if(records[j].TypeVal != TYPEVAL_INVALIDO){
+						return -1;
+					}
+				}
+			}
+		}
+	}
+
+	// Indireção Dupla
+	if(dirInode.doubleIndPtr != INVALID_PTR){
+		getPointers(dirInode.doubleIndPtr, doublePointers);
+		for(k = 0; k < PTR_PER_SECTOR*BLOCK_SIZE; k++){
+			if(doublePointers[k] != INVALID_PTR){
+				getPointers(doublePointers[k], pointers);
+				for(i = 0; i < PTR_PER_SECTOR*BLOCK_SIZE; i++){
+					if(pointers[i] != INVALID_PTR){
+						getRecordsFromEntryBlock(pointers[i], records);
+						for(j = 0; j < RECORD_PER_SECTOR*BLOCK_SIZE; j++){
+							if(records[j].TypeVal != TYPEVAL_INVALIDO){
+								return -1;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return 0;
+}
 
 void removeAllDataFromInode(int inodeNumber){
 	Inode inode;
@@ -481,11 +544,6 @@ int updateRecord(Inode dirInode, Record recordToChange, BYTE typeVal){
 }
 
 int initNewDirInode(int inodeNumber, int inodeNumberPreviousDir){
-/*
-	marcar como ocupado no bitmap
-	inicializar um bloco de dados
-	criar entradas ./ e ../
-*/
 
 	setBitmap2(BITMAP_INODE, inodeNumber, 1);
 
@@ -501,17 +559,17 @@ int initNewDirInode(int inodeNumber, int inodeNumberPreviousDir){
 	inode.dataPtr[0] = blockNum;
 
 	Record recordCurrent;
-	recordCurrent.name = ".";
+	strcpy(recordCurrent.name, ".");
 	recordCurrent.TypeVal = TYPEVAL_DIRETORIO;
 	recordCurrent.inodeNumber = inodeNumber;
 
 	Record recordPrevious;
-	recordPrevious.name = "..";
+	strcpy(recordCurrent.name, "..");
 	recordPrevious.TypeVal = TYPEVAL_DIRETORIO;
 	recordPrevious.inodeNumber = inodeNumberPreviousDir;
 
-	addRecordOnDir(inode, recordCurrent);
-	addRecordOnDir(inode, recordPrevious);
+	addRecordOnDir(&inode, recordCurrent);
+	addRecordOnDir(&inode, recordPrevious);
 
 	if(writeInodeOnDisk(inode, inodeNumber) != 0)
 		return -1;

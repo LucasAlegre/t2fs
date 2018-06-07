@@ -126,15 +126,15 @@ Exemplo: pathname /a/b/c => retorna o inode de b
 Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
 	Em caso de erro, será retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
-int getLastDirInode(char *pathname, Inode *inode);
+int getLastDirInode(char *pathname, Inode *inode, int *inodeNumber);
 
-/*------------------------TO DO-----------------------------------------------------
+/*-----------------------------------------------------------------------------
 Função: Verifica se o diretório está vazio (não possui nenhuma entrada válida)
 Saída:	Se vazio, true. Se existir alguma entrada, false
 
 OBS: Ignorar . e ..
 -----------------------------------------------------------------------------*/
-BOOL isDirEmpty(Inode *dirInode);
+BOOL isDirEmpty(Inode dirInode);
 
 /*-----------------------------------------------------------------------------
 Função: Libera todos os blocos de dados do inode
@@ -148,10 +148,10 @@ Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero)
 -----------------------------------------------------------------------------*/
 int updateRecord(Inode dirInode, Record recordToChange, BYTE typeVal);
 
-/*------------------------TO DO-----------------------------------------------------
+/*-----------------------------------------------------------------------------
 Função: Inicializa um inode para um novo diretório
 -----------------------------------------------------------------------------*/
-void initNewDirInode(int inodeNumber);
+int initNewDirInode(int inodeNumber, int inodeNumberPreviousDir);
 
 /*-----------------------------------------------------------------------------
 Função: Acidiona a entrada recebida em record no inode
