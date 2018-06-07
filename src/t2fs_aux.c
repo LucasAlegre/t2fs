@@ -502,12 +502,43 @@ int updateRecord(Inode dirInode, Record recordToChange, BYTE typeVal){
 	return -1;
 }
 
-void initNewDirInode(DWORD inodeNumber){
+int initNewDirInode(int inodeNumber, int inodeNumberPreviousDir){
 /*
 	marcar como ocupado no bitmap
 	inicializar um bloco de dados
 	criar entradas ./ e ../
 */
+
+	setBitmap2(BITMAP_INODE, inodeNumber, 1);
+
+	Inode inode;
+	inode.blocksFileSize = 1;
+	inode.bytesFileSize = 0;
+	inode.dataPtr[1] = INVALID_PTR;
+	inode.singleIndPtr = INVALID_PTR;
+	inode.doubleIndPtr = INVALID_PTR;
+	
+	int blockNum = initNewEntryBlock();
+
+	inode.dataPtr[0] = blockNum;
+
+	Record recordCurrent;
+	recordCurrent.name = ".";
+	recordCurrent.TypeVal = TYPEVAL_DIRETORIO;
+	recordCurrent.inodeNumber = inodeNumber;
+
+	Record recordPrevious;
+	recordPrevious.name = "..";
+	recordPrevious.TypeVal = TYPEVAL_DIRETORIO;
+	recordPrevious.inodeNumber = inodeNumberPreviousDir;
+
+	addRecordOnDir(inode, recordCurrent);
+	addRecordOnDir(inode, recordPrevious);
+
+	if(writeInodeOnDisk(inode, inodeNumber) != 0)
+		return -1;
+
+	return 0;
 }
 
 int addRecordOnDir(Inode dirInode, Record record){

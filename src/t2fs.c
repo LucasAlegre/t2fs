@@ -219,9 +219,9 @@ int mkdir2 (char *pathname){
 	    		record.inodeNumber = inodeNum;
 		    else
 		    	return -1;
-			initNewDirInode(inodeNum);
-		    if(addRecordOnDir(&dirInode, record) == 0)
-		    	return 0;
+		    if(initNewDirInode(inodeNum) == 0)
+		    	if(addRecordOnDir(&previousDirInode, record) == 0)
+		    		return 0;
 		}
 	}
 */

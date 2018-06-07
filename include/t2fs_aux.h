@@ -151,7 +151,7 @@ int updateRecord(Inode dirInode, Record recordToChange, BYTE typeVal);
 /*------------------------TO DO-----------------------------------------------------
 Função: Inicializa um inode para um novo diretório
 -----------------------------------------------------------------------------*/
-void initNewDirInode(DWORD inodeNumber);
+void initNewDirInode(int inodeNumber);
 
 /*-----------------------------------------------------------------------------
 Função: Acidiona a entrada recebida em record no inode
