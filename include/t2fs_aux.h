@@ -158,7 +158,7 @@ Função: Acidiona a entrada recebida em record no inode
 Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
 	Em caso de erro, será retornado um valor diferente de zero.
 -----------------------------------------------------------------------------*/
-int addRecordOnDir(Inode dirInode, Record record);
+int addRecordOnDir(Inode *dirInode, Record record);
 
 /*-----------------------------------------------------------------------------
 Função: Realiza a escrita do record dado, na entrada de número recordNum do
@@ -236,5 +236,19 @@ BOOL isFileOpen(int inodeNumber);
 Função: Retorna TRUE se diretório aberto, FALSE caso contrário
 -----------------------------------------------------------------------------*/
 BOOL isDirOpen(int inodeNumber);
+
+/*-----------------------------------------------------------------------------
+Função: Atualiza em disco o inode de um diretório
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int updateDirInode(Inode dirInode);
+
+/*-----------------------------------------------------------------------------
+Função: Escreve em disco um ponteiro no bloco dado na posição index
+Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero).
+	Em caso de erro, será retornado um valor diferente de zero.
+-----------------------------------------------------------------------------*/
+int writePointerOnBlock(DWORD blockNum, DWORD pointer, int index);
 
 #endif
