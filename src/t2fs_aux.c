@@ -586,10 +586,10 @@ int initNewDirInode(int inodeNumber, int inodeNumberPreviousDir){
 		printf("Nao escrevi o .\n");
 		return -1;
 	}
-	if(writeRecordOnDir(inode.dataPtr[0], recordPrevious, 0) != 0){
+	if(writeRecordOnDir(inode.dataPtr[0], recordPrevious, 1) != 0){
 		return -1;
 	}
-	
+
 	if(writeInodeOnDisk(inode, inodeNumber) != 0){
 		printf("Nao escrevi no disco\n");
 		return -1;
