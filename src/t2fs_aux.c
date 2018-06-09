@@ -389,7 +389,7 @@ BOOL isDirEmpty(Inode dirInode){
 		getRecordsFromEntryBlock(dirInode.dataPtr[0], records);
 		for(i = 2; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){ //ignora . e ..
 			if(records[i].TypeVal != TYPEVAL_INVALIDO){
-				return -1;
+				return FALSE;
 			}
 		}
 	}	
@@ -398,7 +398,7 @@ BOOL isDirEmpty(Inode dirInode){
 		getRecordsFromEntryBlock(dirInode.dataPtr[1], records);
 		for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
 			if(records[i].TypeVal != TYPEVAL_INVALIDO){
-				return -1;
+				return FALSE;
 			}
 		}
 	}
@@ -410,7 +410,7 @@ BOOL isDirEmpty(Inode dirInode){
 				getRecordsFromEntryBlock(pointers[i], records);
 				for(j = 0; j < RECORD_PER_SECTOR*BLOCK_SIZE; j++){
 					if(records[j].TypeVal != TYPEVAL_INVALIDO){
-						return -1;
+						return FALSE;
 					}
 				}
 			}
@@ -428,7 +428,7 @@ BOOL isDirEmpty(Inode dirInode){
 						getRecordsFromEntryBlock(pointers[i], records);
 						for(j = 0; j < RECORD_PER_SECTOR*BLOCK_SIZE; j++){
 							if(records[j].TypeVal != TYPEVAL_INVALIDO){
-								return -1;
+								return FALSE;
 							}
 						}
 					}
@@ -437,7 +437,7 @@ BOOL isDirEmpty(Inode dirInode){
 		}
 	}
 
-	return 0;
+	return TRUE;
 }
 
 void removeAllDataFromInode(int inodeNumber){
@@ -574,24 +574,18 @@ int initNewDirInode(int inodeNumber, int inodeNumberPreviousDir){
 	recordPrevious.TypeVal = TYPEVAL_DIRETORIO;
 	recordPrevious.inodeNumber = inodeNumberPreviousDir;
 
-	if(addRecordOnDir(&inode, recordCurrent) != 0){
-		printf("Nao escrevi o .\n");
+	if(writeInodeOnDisk(inode, inodeNumber) != 0){
+		printf("Nao escrevi no disco\n");
 		return -1;
 	}
-	if(writeRecordOnDir(inode.dataPtr[0], recordCurrent, 0) != 0){
+
+	if(addRecordOnDir(&inode, recordCurrent) != 0){
+		printf("Nao escrevi o .\n");
 		return -1;
 	}
 
 	if(addRecordOnDir(&inode, recordPrevious) != 0){
 		printf("Nao escrevi o .\n");
-		return -1;
-	}
-	if(writeRecordOnDir(inode.dataPtr[0], recordPrevious, 1) != 0){
-		return -1;
-	}
-
-	if(writeInodeOnDisk(inode, inodeNumber) != 0){
-		printf("Nao escrevi no disco\n");
 		return -1;
 	}
 

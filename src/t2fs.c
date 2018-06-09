@@ -377,7 +377,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry){
 	}
 
 	if(getInodeFromInodeNumber(openDirs[handle].record.inodeNumber, &inode) != 0 ||
-	 getRecordFromNumber(openDirs[handle].record.inodeNumber, openDirs[handle].currentPointer, &record) != 0) {
+		getRecordFromNumber(openDirs[handle].record.inodeNumber, openDirs[handle].currentPointer, &record) != 0) {
 		return -2;
 	}
 
