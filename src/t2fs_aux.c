@@ -550,7 +550,7 @@ int initNewDirInode(int inodeNumber, int inodeNumberPreviousDir){
 
 	Inode inode;
 	inode.blocksFileSize = 1;
-	inode.bytesFileSize = 0;
+	inode.bytesFileSize = BLOCK_SIZE*SECTOR_SIZE;
 	inode.dataPtr[1] = INVALID_PTR;
 	inode.singleIndPtr = INVALID_PTR;
 	inode.doubleIndPtr = INVALID_PTR;
@@ -560,32 +560,26 @@ int initNewDirInode(int inodeNumber, int inodeNumberPreviousDir){
 		return -1;
 
 	inode.dataPtr[0] = blockNum;
-	printf("bloco %d\n", inode.dataPtr[0]);
 
 	Record recordCurrent;
 	strcpy(recordCurrent.name, ".");
-	printf("name %s\n", recordCurrent.name);
 	recordCurrent.TypeVal = TYPEVAL_DIRETORIO;
 	recordCurrent.inodeNumber = inodeNumber;
 
 	Record recordPrevious;
 	strcpy(recordPrevious.name, "..");
-	printf("name %s\n", recordPrevious.name);
 	recordPrevious.TypeVal = TYPEVAL_DIRETORIO;
 	recordPrevious.inodeNumber = inodeNumberPreviousDir;
 
 	if(writeInodeOnDisk(inode, inodeNumber) != 0){
-		printf("Nao escrevi no disco\n");
 		return -1;
 	}
 
 	if(addRecordOnDir(&inode, recordCurrent) != 0){
-		printf("Nao escrevi o .\n");
 		return -1;
 	}
 
 	if(addRecordOnDir(&inode, recordPrevious) != 0){
-		printf("Nao escrevi o .\n");
 		return -1;
 	}
 
@@ -602,9 +596,7 @@ int addRecordOnDir(Inode *dirInode, Record record){
 	getRecordsFromEntryBlock(dirInode->dataPtr[0], records);
 	for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
 		if(records[i].TypeVal == TYPEVAL_INVALIDO){
-			printf("achei um invalido %d\n", dirInode->dataPtr[0]);
 			if(writeRecordOnDir(dirInode->dataPtr[0], record, i) == 0){
-				printf("escreveu\n");
 				return updateDirInode(*dirInode);
 			}
 		}
@@ -889,7 +881,6 @@ int updateDirInode(Inode dirInode){
 	Record record;
 
 	if(getRecordFromDir(dirInode, ".", &record) != 0){
-		printf("nao achei o ponto\n");
 		return -1;
 	}
 	if(writeInodeOnDisk(dirInode, record.inodeNumber) != 0)

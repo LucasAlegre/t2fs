@@ -238,38 +238,29 @@ int mkdir2 (char *pathname){
 
 	if(getLastDirInode(pathname, &previousDirInode, &previousDirInodeNumber) == 0){
 		getFilenameFromPath(pathname, dirName);
-		printf("file from path %s\n", record.name);
-		printf("previous inode %d\n", previousDirInodeNumber);
 	   	if(getRecordFromDir(previousDirInode, dirName, &record) != 0){ //se esse dir não existe
 		    strcpy(record.name, dirName);
 		    record.TypeVal = TYPEVAL_DIRETORIO;
 		    int inodeNum = searchBitmap2(BITMAP_INODE, 0);
 			if(inodeNum != -1){
 	    		record.inodeNumber = inodeNum;
-				printf("file inode %d\n", record.inodeNumber);
 			}
 		    else{
 		    	return -1;
-				printf("Nao achou inode\n");
 		    }
 		    if(initNewDirInode(inodeNum, previousDirInodeNumber) == 0){
-				printf("inicou dir\n");
 		    	if(addRecordOnDir(&previousDirInode, record) == 0){
 		    		return 0;
 		    	}
 		    	else{
-					printf("Nao conseguiu add no dir\n");
 		    		removeAllDataFromInode(inodeNum);
 					setBitmap2(BITMAP_INODE, inodeNum, 0);
 					return -1;
 		    	}
 		    }
-		    printf("nao inicou dir\n");
 		}
-		printf("Dir ja existe\n");
 		return -1;
 	}
-	printf("Nao achou pai\n");
 	return -1;
 }
 
