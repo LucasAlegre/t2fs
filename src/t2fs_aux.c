@@ -509,6 +509,8 @@ int addRecordOnDir(Inode *dirInode, Record record){
 		dirInode->dataPtr[1] = initNewEntryBlock();
 		if(dirInode->dataPtr[1] == -1)
 			return -1;
+		dirInode->blocksFileSize += 1;
+		dirInode->bytesFileSize += SECTOR_SIZE*BLOCK_SIZE;
 	}
 	getRecordsFromEntryBlock(dirInode->dataPtr[1], records);
 	for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
@@ -539,6 +541,8 @@ int addRecordOnDir(Inode *dirInode, Record record){
 			pointers[i] = initNewEntryBlock();
 			if(pointers[i] == -1)
 				return -1;
+			dirInode->blocksFileSize += 1;
+			dirInode->bytesFileSize += SECTOR_SIZE*BLOCK_SIZE;
 			writePointerOnBlock(dirInode->singleIndPtr, pointers[i], i);
 			writeRecordOnDir(pointers[i], record, 0);
 			return updateDirInode(*dirInode);
@@ -574,6 +578,8 @@ int addRecordOnDir(Inode *dirInode, Record record){
 				pointers[i] = initNewEntryBlock();
 				if(pointers[i] == -1)
 					return -1;
+				dirInode->blocksFileSize += 1;
+				dirInode->bytesFileSize += SECTOR_SIZE*BLOCK_SIZE;
 				writePointerOnBlock(doublePointers[k], pointers[i], i);
 				writeRecordOnDir(pointers[i], record, 0);
 				return updateDirInode(*dirInode);
