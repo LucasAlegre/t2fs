@@ -125,24 +125,25 @@ int read2 (FILE2 handle, char *buffer, int size){
 
 	OpenFile file;
 	Inode fileInode;
+	int numBytes;
 
 	if(isFileHandleValid(handle)){
 		file = openFiles[handle];
-		fileInode = getInodeFromInodeNumber(record.inodeNumber);
-		if(file.currentPointer < fileInode.bytesFileSize){ //se não tá no fim do arquivo
-			if(file.currentPointer+size <= fileInode.bytesFileSize){ // caso seja possível ler todos os size bytes
-				readBytesFromFile(file.currentPointer, fileInode, size, buffer);
-				file.currentPointer = file.currentPointer+size;
+		if(getInodeFromInodeNumber(file.record.inodeNumber, &fileInode) == 0){
+			if(file.currentPointer < fileInode.bytesFileSize){ //se não tá no fim do arquivo
+				if(file.currentPointer+size <= fileInode.bytesFileSize){ // caso seja possível ler todos os size bytes
+					readBytesFromFile(file.currentPointer, fileInode, size, buffer);
+					file.currentPointer = file.currentPointer+size;
+				}
+				else{ //senão lê só o que for possível
+					numBytes = fileInode.bytesFileSize - file.currentPointer;
+					readBytesFromFile(file.currentPointer, fileInode, numBytes, buffer);
+					file.currentPointer = fileInode.bytesFileSize;
+				}
+				openFiles[handle] = file; //atualiza openFiles (currentPointer)
 			}
-			else{ //senão lê só o que for possível
-				numBytes = fileInode.bytesFileSize - file.currentPointer;
-				readBytesFromFile(file.currentPointer, fileInode, numBytes, buffer);
-				file.currentPointer = fileInode.bytesFileSize;
-			}
-			openFiles[handle] = file; //atualiza openFiles (currentPointer)
+			return numBytes;
 		}
-
-		return 0;
 	}
 
 	return -1;
@@ -151,24 +152,20 @@ int read2 (FILE2 handle, char *buffer, int size){
 
 int write2 (FILE2 handle, char *buffer, int size){
 	initializeT2fs();
-/*
+
 	OpenFile file;
-	Inode fileInode;
+	int numBytes;
 
 	if(isFileHandleValid(handle)){
 		file = openFiles[handle];
-		fileInode = getInodeFromInodeNumber(record.inodeNumber);
 
-		
-
-		return 0;
+		if(writeBytesOnFile(file.currentPointer, file.record.inodeNumber, buffer, size, &numBytes) == 0){
+			file.currentPointer += numBytes;
+			openFiles[handle] = file;
+			return numBytes;
+		}	
+		return -1;
 	}
-*/
-	// Ve se tem espaço e acha o bloco onde vai escrever
-	// (Blocos de indices etc etc)
-	// Escreve
-	// Atualiza tamanho
-
 	return -1;
 }
 
@@ -183,40 +180,28 @@ int truncate2 (FILE2 handle){
 		file = openFiles[handle];
 		int currentBlock;
 
-		fileInode = getInodeFromInodeNumber(record.inodeNumber);
+		if(getInodeFromInodeNumber(file.record.inodeNumber, &fileInode) == 0){
 		
-		if(file.currentPointer < fileInode.bytesFileSize){
-			currentBlock = file.currentPointer/(BLOCK_SIZE*SECTOR_SIZE);
+			if(file.currentPointer < fileInode.bytesFileSize){
+				currentBlock = file.currentPointer/(BLOCK_SIZE*SECTOR_SIZE);
 
 
-			if(fileInode.blocksFileSize > currentBlock){
-				if(currentPointer-currentBlock*BLOCK_SIZE*SECTOR_SIZE == 0){
-					freeBlocks(fileInode, currentBlock+1);
+				if(fileInode.blocksFileSize > currentBlock+1){
+					if(file.currentPointer-currentBlock*BLOCK_SIZE*SECTOR_SIZE == 0){
+						freeBlocks(fileInode, file.record.inodeNumber, currentBlock+1, fileInode.blocksFileSize);
+					}
+					else{
+						freeBlocks(fileInode, file.record.inodeNumber, currentBlock+2, fileInode.blocksFileSize);
+					}
 				}
-				else{
-					freeBlocks(fileInode, currentBlock+2);
-				}
-			}
+				fileInode.bytesFileSize = file.currentPointer;
+				fileInode.blocksFileSize = file.currentPointer/(BLOCK_SIZE*SECTOR_SIZE) +1;	
+				writeInodeOnDisk(fileInode, file.record.inodeNumber);
+			}	
 
-			fileInode.bytesFileSize = file.currentPointer;
-			//atualiza inode
+			return 0;
 		}
-		
-		
-
-		return 0;
 	}
-	return -1;
-	}
-
-
-	// Remove do arquivo todos os bytes a partir da posição atual do contador de posição (CP)
-	// Todos os bytes a partir da posição CP (inclusive) serão removidos do arquivo.
-	// Após a operação, o arquivo deverá contar com CP bytes e o ponteiro estará no final do arquivo
-	
-	// Calcula os bytes que vao ser apagados
-	// Sai marcando os blocos como livres(cuidar bloco de indices)
-	// Atualiza tamanho do arquivo
 
 	return -1;
 }
@@ -253,26 +238,38 @@ int mkdir2 (char *pathname){
 
 	if(getLastDirInode(pathname, &previousDirInode, &previousDirInodeNumber) == 0){
 		getFilenameFromPath(pathname, dirName);
+		printf("file from path %s\n", record.name);
+		printf("previous inode %d\n", previousDirInodeNumber);
 	   	if(getRecordFromDir(previousDirInode, dirName, &record) != 0){ //se esse dir não existe
 		    strcpy(record.name, dirName);
 		    record.TypeVal = TYPEVAL_DIRETORIO;
 		    int inodeNum = searchBitmap2(BITMAP_INODE, 0);
-			if(inodeNum != -1)
+			if(inodeNum != -1){
 	    		record.inodeNumber = inodeNum;
-		    else
+				printf("file inode %d\n", record.inodeNumber);
+			}
+		    else{
 		    	return -1;
+				printf("Nao achou inode\n");
+		    }
 		    if(initNewDirInode(inodeNum, previousDirInodeNumber) == 0){
+				printf("inicou dir\n");
 		    	if(addRecordOnDir(&previousDirInode, record) == 0){
 		    		return 0;
 		    	}
 		    	else{
+					printf("Nao conseguiu add no dir\n");
 		    		removeAllDataFromInode(inodeNum);
 					setBitmap2(BITMAP_INODE, inodeNum, 0);
 					return -1;
 		    	}
 		    }
+		    printf("nao inicou dir\n");
 		}
+		printf("Dir ja existe\n");
+		return -1;
 	}
+	printf("Nao achou pai\n");
 	return -1;
 }
 

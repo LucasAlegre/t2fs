@@ -556,24 +556,44 @@ int initNewDirInode(int inodeNumber, int inodeNumberPreviousDir){
 	inode.doubleIndPtr = INVALID_PTR;
 	
 	int blockNum = initNewEntryBlock();
+	if(blockNum <= 0)
+		return -1;
 
 	inode.dataPtr[0] = blockNum;
+	printf("bloco %d\n", inode.dataPtr[0]);
 
 	Record recordCurrent;
 	strcpy(recordCurrent.name, ".");
+	printf("name %s\n", recordCurrent.name);
 	recordCurrent.TypeVal = TYPEVAL_DIRETORIO;
 	recordCurrent.inodeNumber = inodeNumber;
 
 	Record recordPrevious;
-	strcpy(recordCurrent.name, "..");
+	strcpy(recordPrevious.name, "..");
+	printf("name %s\n", recordPrevious.name);
 	recordPrevious.TypeVal = TYPEVAL_DIRETORIO;
 	recordPrevious.inodeNumber = inodeNumberPreviousDir;
 
-	addRecordOnDir(&inode, recordCurrent);
-	addRecordOnDir(&inode, recordPrevious);
-
-	if(writeInodeOnDisk(inode, inodeNumber) != 0)
+	if(addRecordOnDir(&inode, recordCurrent) != 0){
+		printf("Nao escrevi o .\n");
 		return -1;
+	}
+	if(writeRecordOnDir(inode.dataPtr[0], recordCurrent, 0) != 0){
+		return -1;
+	}
+
+	if(addRecordOnDir(&inode, recordPrevious) != 0){
+		printf("Nao escrevi o .\n");
+		return -1;
+	}
+	if(writeRecordOnDir(inode.dataPtr[0], recordPrevious, 0) != 0){
+		return -1;
+	}
+	
+	if(writeInodeOnDisk(inode, inodeNumber) != 0){
+		printf("Nao escrevi no disco\n");
+		return -1;
+	}
 
 	return 0;
 }
@@ -588,7 +608,9 @@ int addRecordOnDir(Inode *dirInode, Record record){
 	getRecordsFromEntryBlock(dirInode->dataPtr[0], records);
 	for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
 		if(records[i].TypeVal == TYPEVAL_INVALIDO){
+			printf("achei um invalido %d\n", dirInode->dataPtr[0]);
 			if(writeRecordOnDir(dirInode->dataPtr[0], record, i) == 0){
+				printf("escreveu\n");
 				return updateDirInode(*dirInode);
 			}
 		}
@@ -872,8 +894,10 @@ BOOL isDirOpen(int inodeNumber){
 int updateDirInode(Inode dirInode){
 	Record record;
 
-	if(getRecordFromDir(dirInode, ".", &record) != 0)
+	if(getRecordFromDir(dirInode, ".", &record) != 0){
+		printf("nao achei o ponto\n");
 		return -1;
+	}
 	if(writeInodeOnDisk(dirInode, record.inodeNumber) != 0)
 		return -1;
 
@@ -904,19 +928,18 @@ void readBytesFromFile(DWORD currentPointer, Inode fileInode, int numBytes, char
 	int bytesRead;
 	DWORD pointers[POINTERS_PER_BLOCK], doublePointers[POINTERS_PER_BLOCK];
 	int pointer;
-	int i, j, inicio;
+	int i, j, inicio, currentBlock;
+	
+	auxBuffer = "teste";
 
-		
 	currentBlock = currentPointer/(BLOCK_SIZE*SECTOR_SIZE) +1;
 	pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
 	//Diretos
 	if(currentBlock == 1){
 		bytesRead = readBlock(fileInode.dataPtr[0], pointer, numBytes, auxBuffer);
 		for(i = 0; i< bytesRead; i++){
-			if(currentByte < maxBytes){
-				buffer[currentByte] = auxBuffer[i];
-				currentByte++;
-			}
+			buffer[currentByte] = auxBuffer[i];
+			currentByte++;
 		}
 		if(bytesRead < numBytes){ //se ainda não leu tudo, continua lendo
 			currentBlock++;
@@ -972,7 +995,7 @@ void readBytesFromFile(DWORD currentPointer, Inode fileInode, int numBytes, char
 			inicio = (currentBlock-3-POINTERS_PER_BLOCK)-i*POINTERS_PER_BLOCK;
 			for(j = inicio; j < POINTERS_PER_BLOCK; j++){
 				pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
-				bytesRead = readBlock(pointers[i], pointer, numBytes, auxBuffer);
+				bytesRead = readBlock(pointers[j], pointer, numBytes, auxBuffer);
 				for(i = 0; i< bytesRead; i++){
 					buffer[currentByte] = auxBuffer[i];
 					currentByte++;
@@ -994,13 +1017,14 @@ void readBytesFromFile(DWORD currentPointer, Inode fileInode, int numBytes, char
 
 int readBlock(int blockNumber, int pointer, int maxBytes, char *buffer){
 	unsigned char auxBuffer[SECTOR_SIZE];
-	int sector = blockNum*BLOCK_SIZE + pointer/(SECTOR_SIZE);
+	int sector = blockNumber*BLOCK_SIZE + pointer/(SECTOR_SIZE);
 	int sectors = 0;
 	int i, currentByte=0;
 
-	while(sectors <=4 ){
+	while(sectors < BLOCK_SIZE ){
 		if(read_sector(sector, auxBuffer) == 0){
 			pointer += SECTOR_SIZE;
+			sector = blockNumber*BLOCK_SIZE + pointer/(SECTOR_SIZE);
 			sectors++;
 			for(i = 0; i< SECTOR_SIZE; i++){
 				if(currentByte < maxBytes){
@@ -1014,21 +1038,229 @@ int readBlock(int blockNumber, int pointer, int maxBytes, char *buffer){
 	return currentByte; //número de bytes lidos
 }
 
-int freeBlocks(Inode fileInode, int startBlock){
+void freeBlocks(Inode fileInode, int inodeNumber, int startBlock, int maxBlocks){
 	int currentBlock = startBlock;
+	DWORD pointers[POINTERS_PER_BLOCK], doublePointers[POINTERS_PER_BLOCK];
+	int inicio, i, j, ini;
+	
 	if(currentBlock == 1){
-		// zera 2 até tam
-		// zera blocos de ponteiros
+		setBitmap2(BITMAP_DADOS, fileInode.dataPtr[0], 0);
+		fileInode.dataPtr[0] = INVALID_PTR;
+		if(currentBlock<maxBlocks){
+			currentBlock++;
+		}
 	}
 	if(currentBlock == 2){
-		// zera indireções até tam
-		// zera blocos de ponteiros
+		setBitmap2(BITMAP_DADOS, fileInode.dataPtr[1], 0);
+		fileInode.dataPtr[1] = INVALID_PTR;
+		if(currentBlock<maxBlocks){
+			currentBlock++;
+		}
 	}
-	if(currentBlock <= POINTERS_PER_BLOCK+2){
-		// zera simples a partir de currentBlock-3
+	if(currentBlock>2 && currentBlock <= POINTERS_PER_BLOCK+2){
+		getPointers(fileInode.singleIndPtr, pointers);
+		
+		inicio = currentBlock-3;
+		for(i = inicio; i<POINTERS_PER_BLOCK; i++){
+			if(currentBlock<=maxBlocks){
+				setBitmap2(BITMAP_DADOS, pointers[i], 0);
+				pointers[i] = INVALID_PTR;
+				writePointerOnBlock(fileInode.singleIndPtr, pointers[i], i);
+				currentBlock++;
+			}
+		}
+		if(inicio == 0){
+			fileInode.singleIndPtr = INVALID_PTR;
+		}
 	}
 	else{
-		// fileInode.blocksFileSize - currentBlock
-		// zera dupla currentBlock-12
+		getPointers(fileInode.doubleIndPtr, doublePointers);
+		ini = currentBlock-3-POINTERS_PER_BLOCK;
+		for(i = ini; i<POINTERS_PER_BLOCK; i++){
+			getPointers(doublePointers[i], pointers);
+			inicio = (currentBlock-3-POINTERS_PER_BLOCK)-i*POINTERS_PER_BLOCK;
+			for(j = inicio; j < POINTERS_PER_BLOCK; j++){
+				if(currentBlock<=maxBlocks){
+					setBitmap2(BITMAP_DADOS, pointers[j], 0);
+					pointers[j] = INVALID_PTR;
+					writePointerOnBlock(doublePointers[i], pointers[j], j);
+					currentBlock++;
+				}
+			}
+			if(inicio == 0){
+				setBitmap2(BITMAP_DADOS, doublePointers[i], 0);
+				doublePointers[i] = INVALID_PTR;
+				writePointerOnBlock(fileInode.doubleIndPtr, doublePointers[i], i);
+			}
+		}
+		if(ini == 0){
+			fileInode.doubleIndPtr = INVALID_PTR;
+		}
+	}
+	writeInodeOnDisk(fileInode, inodeNumber);
+
+}
+
+int writeBytesOnFile(DWORD currentPointer, int inodeNumber, char *buffer, int size, int *numBytes){
+	Inode fileInode;
+	char *auxBuffer;
+	DWORD pointers[POINTERS_PER_BLOCK], doublePointers[POINTERS_PER_BLOCK];
+	int inicio, currentBlock, pointer, currentByte;
+	int bytes = 0;
+	int i, j, k;
+
+	auxBuffer = "teste";
+
+	if(getInodeFromInodeNumber(inodeNumber, &fileInode) == 0){
+		currentBlock = currentPointer/(BLOCK_SIZE*SECTOR_SIZE) +1;
+		//Diretos
+		if(currentBlock == 1){
+			pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
+			if(fileInode.dataPtr[0] == INVALID_PTR){
+				fileInode.dataPtr[0] = searchBitmap2(BITMAP_DADOS, 0);
+				if(fileInode.dataPtr[0] < 0)
+					return -1;
+				fileInode.blocksFileSize += 1;
+			}
+			readBlock(fileInode.dataPtr[0], 0, BLOCK_SIZE*SECTOR_SIZE, auxBuffer);
+			i = pointer;
+			while(i< BLOCK_SIZE*SECTOR_SIZE && currentByte < size){
+				auxBuffer[i] = buffer[currentByte];
+				currentByte++;
+				i++;
+			}
+			writeBlock(fileInode.dataPtr[0], auxBuffer);
+			if(currentByte < size){ //se ainda não escreveu tudo, continua escrevendo
+				currentBlock++;
+			}
+			currentPointer+=currentByte;
+		}
+
+		if(currentBlock == 2){
+			pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
+			if(fileInode.dataPtr[1] == INVALID_PTR){
+				fileInode.dataPtr[1] = searchBitmap2(BITMAP_DADOS, 0);
+				if(fileInode.dataPtr[1] < 0)
+					return -1;
+				fileInode.blocksFileSize += 1;
+			}
+			readBlock(fileInode.dataPtr[1], 0, BLOCK_SIZE*SECTOR_SIZE, auxBuffer);
+			i = pointer;
+			while(i< BLOCK_SIZE*SECTOR_SIZE && currentByte < size){
+				auxBuffer[i] = buffer[currentByte];
+				currentByte++;
+				i++;
+			}
+			writeBlock(fileInode.dataPtr[1], auxBuffer);
+			if(currentByte < size){ //se ainda não escreveu tudo, continua escrevendo
+				currentBlock++;
+			}
+			currentPointer+=currentByte;
+		}
+
+		// Indireção simples
+		if(currentBlock > 2 && currentBlock <= POINTERS_PER_BLOCK+2){
+			if(fileInode.singleIndPtr == INVALID_PTR){
+				fileInode.singleIndPtr = initNewPointerBlock();
+				if(fileInode.singleIndPtr < 0){
+					return -1;
+				}
+			}
+			getPointers(fileInode.singleIndPtr, pointers);
+			for(i = currentBlock-3; i<POINTERS_PER_BLOCK; i++){
+				if(currentByte < size){
+					pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
+					if(pointers[i] == INVALID_PTR){
+						pointers[i] = searchBitmap2(BITMAP_DADOS, 0);
+						if(pointers[i] < 0)
+							return -1;
+						fileInode.blocksFileSize += 1;
+					}
+					readBlock(pointers[i], 0, BLOCK_SIZE*SECTOR_SIZE, auxBuffer);
+					k = pointer;
+					while(k< BLOCK_SIZE*SECTOR_SIZE && currentByte < size){
+						auxBuffer[k] = buffer[currentByte];
+						currentByte++;
+						k++;
+					}
+					writeBlock(fileInode.dataPtr[0], auxBuffer);
+					if(currentByte < size){ //se ainda não escreveu tudo, continua escrevendo
+						currentBlock++;
+					}
+					currentPointer+=currentByte;
+				}
+			}
+		}
+
+		//Indireção dupla
+		if(currentBlock > POINTERS_PER_BLOCK+2){
+			if(fileInode.doubleIndPtr == INVALID_PTR){
+				fileInode.doubleIndPtr = initNewPointerBlock();
+				if(fileInode.doubleIndPtr < 0){
+					return -1;
+				}
+			}
+			getPointers(fileInode.doubleIndPtr, doublePointers);
+			inicio = (currentBlock-3-POINTERS_PER_BLOCK)/POINTERS_PER_BLOCK;
+			for(i = inicio; i<POINTERS_PER_BLOCK; i++){
+				if(currentByte < size){
+					if(doublePointers[i] == INVALID_PTR){
+						doublePointers[i] = initNewPointerBlock();
+						if(doublePointers[i] < 0){
+							return -1;
+						}
+					}
+					getPointers(doublePointers[i], pointers);
+					inicio = (currentBlock-3-POINTERS_PER_BLOCK)-i*POINTERS_PER_BLOCK;
+					for(j = inicio; j < POINTERS_PER_BLOCK; j++){
+						if(currentByte < size){
+							pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
+							if(pointers[j] == INVALID_PTR){
+								pointers[j] = searchBitmap2(BITMAP_DADOS, 0);
+								if(pointers[j] < 0)
+									return -1;
+								fileInode.blocksFileSize += 1;
+							}
+							readBlock(pointers[j], 0, BLOCK_SIZE*SECTOR_SIZE, auxBuffer);
+							k = pointer;
+							while(k< BLOCK_SIZE*SECTOR_SIZE && currentByte < size){
+								auxBuffer[k] = buffer[currentByte];
+								currentByte++;
+								k++;
+							}
+							writeBlock(fileInode.dataPtr[0], auxBuffer);
+							if(currentByte < size){ //se ainda não escreveu tudo, continua escrevendo
+								currentBlock++;
+							}
+							currentPointer+=currentByte;
+						}
+					}
+				}
+			}
+		}
+
+		*numBytes = bytes;
+		fileInode.bytesFileSize += bytes;
+		writeInodeOnDisk(fileInode, inodeNumber);
+		return 0;
+	}
+	return -1;
+}
+
+void writeBlock(int blockNumber, char *buffer){
+	unsigned char auxBuffer[SECTOR_SIZE];
+	int sector = blockNumber*BLOCK_SIZE;
+	int sectors = 0;
+	int i, currentByte=0;
+
+	while(sectors < BLOCK_SIZE ){
+		for(i = 0; i< SECTOR_SIZE; i++){
+			auxBuffer[i] = buffer[currentByte];
+			currentByte++;
+		}
+		if(write_sector(sector, auxBuffer) == 0){
+			sector++;
+			sectors++;
+		}
 	}
 }
