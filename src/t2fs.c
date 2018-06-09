@@ -122,11 +122,28 @@ int close2 (FILE2 handle){
 int read2 (FILE2 handle, char *buffer, int size){
 	initializeT2fs();
 
-	// Ver se o arquivo no handle ta aberto
-	// Acessar o inode
-	// ??? --- Ver se tem size bytes pra ler
-	// Ler size bytes a partir do current pointer
-	// Atualizar o current pointer
+
+	OpenFile file;
+	Inode fileInode;
+
+	if(isFileHandleValid(handle)){
+		file = openFiles[handle];
+		fileInode = getInodeFromInodeNumber(record.inodeNumber);
+		if(file.currentPointer < fileInode.bytesFileSize){ //se não tá no fim do arquivo
+			if(file.currentPointer+size <= fileInode.bytesFileSize){ // caso seja possível ler todos os size bytes
+				readBytesFromFile(file.currentPointer, fileInode, size, buffer);
+				file.currentPointer = file.currentPointer+size;
+			}
+			else{ //senão lê só o que for possível
+				numBytes = fileInode.bytesFileSize - file.currentPointer;
+				readBytesFromFile(file.currentPointer, fileInode, numBytes, buffer);
+				file.currentPointer = fileInode.bytesFileSize;
+			}
+			openFiles[handle] = file; //atualiza openFiles (currentPointer)
+		}
+
+		return 0;
+	}
 
 	return -1;
 }
@@ -137,9 +154,9 @@ int write2 (FILE2 handle, char *buffer, int size){
 /*
 	OpenFile file;
 	Inode fileInode;
-	file = openFiles[handle];
 
-	if(file.record.TypeVal == TYPEVAL_REGULAR){
+	if(isFileHandleValid(handle)){
+		file = openFiles[handle];
 		fileInode = getInodeFromInodeNumber(record.inodeNumber);
 
 		
@@ -158,24 +175,40 @@ int write2 (FILE2 handle, char *buffer, int size){
 
 int truncate2 (FILE2 handle){
 	initializeT2fs();
-/*
+
 	OpenFile file;
 	Inode fileInode;
-	file = openFiles[handle];
 
-	if(file.record.TypeVal == TYPEVAL_REGULAR){
+	if(isFileHandleValid(handle)){
+		file = openFiles[handle];
+		int currentBlock;
+
 		fileInode = getInodeFromInodeNumber(record.inodeNumber);
 		
-		if(file.currentPointer < fileInode.bytesFileSize + 1){
-			
+		if(file.currentPointer < fileInode.bytesFileSize){
+			currentBlock = file.currentPointer/(BLOCK_SIZE*SECTOR_SIZE);
 
+
+			if(fileInode.blocksFileSize > currentBlock){
+				if(currentPointer-currentBlock*BLOCK_SIZE*SECTOR_SIZE == 0){
+					freeBlocks(fileInode, currentBlock+1);
+				}
+				else{
+					freeBlocks(fileInode, currentBlock+2);
+				}
+			}
+
+			fileInode.bytesFileSize = file.currentPointer;
+			//atualiza inode
 		}
 		
 		
 
 		return 0;
 	}
-*/
+	return -1;
+	}
+
 
 	// Remove do arquivo todos os bytes a partir da posição atual do contador de posição (CP)
 	// Todos os bytes a partir da posição CP (inclusive) serão removidos do arquivo.
@@ -200,7 +233,7 @@ int seek2 (FILE2 handle, DWORD offset){
 			file.currentPointer = offset;
 		else{
 			if(getInodeFromInodeNumber(file.record.inodeNumber, &fileInode) == 0)
-				file.currentPointer = fileInode.bytesFileSize + 1;
+				file.currentPointer = fileInode.bytesFileSize;
 		}
 		openFiles[handle] = file;
 		return 0;

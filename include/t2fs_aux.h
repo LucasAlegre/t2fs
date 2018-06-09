@@ -251,4 +251,12 @@ Saída:	Se a operação foi realizada com sucesso, a função retorna "0" (zero)
 -----------------------------------------------------------------------------*/
 int writePointerOnBlock(DWORD blockNum, DWORD pointer, int index);
 
+/*-----------------------------------------------------------------------------
+Função: Lê a quantidade de bytes passada por parâmetro do arquivo correspondente ao i-node do parâmetro
+Saída:	os bytes lidos estarão no array buffer
+-----------------------------------------------------------------------------*/
+int readBytesFromFile(DWORD currentPointer, Inode fileInode, int numBytes, char *buffer);
+
+
+
 #endif

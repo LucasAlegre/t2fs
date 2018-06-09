@@ -378,6 +378,7 @@ int getLastDirInode(char *pathname, Inode *inode, int *inodeNumber){
 }
 
 BOOL isDirEmpty(Inode dirInode){
+	
 	int i, j, k;
 	Record records[RECORD_PER_SECTOR*BLOCK_SIZE];
 	DWORD pointers[PTR_PER_SECTOR*BLOCK_SIZE];
@@ -386,7 +387,7 @@ BOOL isDirEmpty(Inode dirInode){
 	// Direto 0
 	if(dirInode.dataPtr[0] != INVALID_PTR){
 		getRecordsFromEntryBlock(dirInode.dataPtr[0], records);
-		for(i = 0; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){
+		for(i = 2; i < RECORD_PER_SECTOR*BLOCK_SIZE; i++){ //ignora . e ..
 			if(records[i].TypeVal != TYPEVAL_INVALIDO){
 				return -1;
 			}
@@ -889,4 +890,139 @@ int writePointerOnBlock(DWORD blockNum, DWORD pointer, int index){
 	}
 
 	return 0;
+}
+
+void readBytesFromFile(DWORD currentPointer, Inode fileInode, int numBytes, char *buffer){
+	char *auxBuffer;
+	int currentByte = 0;
+	int bytesRead;
+	DWORD pointers[POINTERS_PER_BLOCK], doublePointers[POINTERS_PER_BLOCK];
+	int pointer;
+	int i, j, inicio;
+
+		
+	currentBlock = currentPointer/(BLOCK_SIZE*SECTOR_SIZE) +1;
+	pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
+	//Diretos
+	if(currentBlock == 1){
+		bytesRead = readBlock(fileInode.dataPtr[0], pointer, numBytes, auxBuffer);
+		for(i = 0; i< bytesRead; i++){
+			if(currentByte < maxBytes){
+				buffer[currentByte] = auxBuffer[i];
+				currentByte++;
+			}
+		}
+		if(bytesRead < numBytes){ //se ainda não leu tudo, continua lendo
+			currentBlock++;
+		}
+		currentPointer+=bytesRead;
+		numBytes -= bytesRead;	
+		pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
+	}
+
+	if(currentBlock == 2){
+		pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
+		bytesRead = readBlock(fileInode.dataPtr[1], pointer, numBytes, auxBuffer);
+		for(i = 0; i< bytesRead; i++){
+			buffer[currentByte] = auxBuffer[i];
+			currentByte++;
+		}
+		
+		if(bytesRead < numBytes){ //se ainda não leu tudo, continua lendo
+			currentBlock++;
+		}
+		currentPointer+=bytesRead;
+		numBytes -= bytesRead;	
+	}
+
+	// Indireção simples
+	if(currentBlock > 2 && currentBlock <= POINTERS_PER_BLOCK+2){
+		getPointers(fileInode.singleIndPtr, pointers);
+		for(i = currentBlock-3; i<POINTERS_PER_BLOCK; i++){
+			pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
+			bytesRead = readBlock(pointers[i], pointer, numBytes, auxBuffer);
+			for(i = 0; i< bytesRead; i++){
+				buffer[currentByte] = auxBuffer[i];
+				currentByte++;
+			}
+			
+			if(bytesRead == numBytes){ //se já leu tudo, sai do laço
+				break;
+			}
+			currentPointer+=bytesRead;
+			numBytes -= bytesRead;	
+		}
+		if(i==POINTERS_PER_BLOCK){
+			currentBlock+=POINTERS_PER_BLOCK;
+		}
+	}
+
+	//Indireção dupla
+	if(currentBlock > POINTERS_PER_BLOCK+2){
+		getPointers(fileInode.doubleIndPtr, doublePointers);
+		inicio = (currentBlock-3-POINTERS_PER_BLOCK)/POINTERS_PER_BLOCK;
+		for(i = inicio; i<POINTERS_PER_BLOCK; i++){
+			getPointers(doublePointers[i], pointers);
+			inicio = (currentBlock-3-POINTERS_PER_BLOCK)-i*POINTERS_PER_BLOCK;
+			for(j = inicio; j < POINTERS_PER_BLOCK; j++){
+				pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
+				bytesRead = readBlock(pointers[i], pointer, numBytes, auxBuffer);
+				for(i = 0; i< bytesRead; i++){
+					buffer[currentByte] = auxBuffer[i];
+					currentByte++;
+				}
+				
+				if(bytesRead == numBytes){ //se já leu tudo, sai do laço
+					break;
+				}
+				currentPointer+=bytesRead;
+				numBytes -= bytesRead;
+			}
+			if(bytesRead == numBytes){ //se já leu tudo, sai do laço
+				break;
+			}
+		}
+	}
+	
+}
+
+int readBlock(int blockNumber, int pointer, int maxBytes, char *buffer){
+	unsigned char auxBuffer[SECTOR_SIZE];
+	int sector = blockNum*BLOCK_SIZE + pointer/(SECTOR_SIZE);
+	int sectors = 0;
+	int i, currentByte=0;
+
+	while(sectors <=4 ){
+		if(read_sector(sector, auxBuffer) == 0){
+			pointer += SECTOR_SIZE;
+			sectors++;
+			for(i = 0; i< SECTOR_SIZE; i++){
+				if(currentByte < maxBytes){
+					buffer[currentByte] = auxBuffer[i];
+					currentByte++;
+				}
+			}
+		}
+	}
+
+	return currentByte; //número de bytes lidos
+}
+
+int freeBlocks(Inode fileInode, int startBlock){
+	int currentBlock = startBlock;
+	if(currentBlock == 1){
+		// zera 2 até tam
+		// zera blocos de ponteiros
+	}
+	if(currentBlock == 2){
+		// zera indireções até tam
+		// zera blocos de ponteiros
+	}
+	if(currentBlock <= POINTERS_PER_BLOCK+2){
+		// zera simples a partir de currentBlock-3
+	}
+	else{
+		// fileInode.blocksFileSize - currentBlock
+		// zera dupla currentBlock-12
+	}
 }
