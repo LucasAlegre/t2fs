@@ -8,15 +8,15 @@ int main(){
 	char a[1000];
 	identify2(a, 100);
 
-	char c[3] = "aa\0";
+	/*char c[3] = "aa\0";
 	int i ;
 	for(i = 0; i < 20; i++){
 		c[1] += 1;
 		int i = create2(c);
 		close2(i);
-	}
-			/*
-		char *name = "dir1/dir11/../dir11/file111\0";
+	}*/
+		
+		/*char *name = "d1";
 		int h = open2(name);
 		if (isFileHandleValid(h)){
 			printf("%s\n", openFiles[h].record.name);
