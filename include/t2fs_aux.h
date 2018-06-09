@@ -255,8 +255,28 @@ int writePointerOnBlock(DWORD blockNum, DWORD pointer, int index);
 Função: Lê a quantidade de bytes passada por parâmetro do arquivo correspondente ao i-node do parâmetro
 Saída:	os bytes lidos estarão no array buffer
 -----------------------------------------------------------------------------*/
-int readBytesFromFile(DWORD currentPointer, Inode fileInode, int numBytes, char *buffer);
+void readBytesFromFile(DWORD currentPointer, Inode fileInode, int numBytes, char *buffer);
 
+/*-----------------------------------------------------------------------------
+Função: Lê maxBytes a partir de pointer no bloco blockNumber e passa os bytes lidos para buffer
+Saída:	número de bytes lidos
+-----------------------------------------------------------------------------*/
+int readBlock(int blockNumber, int pointer, int maxBytes, char *buffer);
 
+/*-----------------------------------------------------------------------------
+Função: Libera maxBlocks do arquivo de fileInode a partir do startBlock
+Saída:	os bytes lidos estarão no array buffer
+-----------------------------------------------------------------------------*/
+void freeBlocks(Inode fileInode, int inodeNumber, int startBlock, int maxBlocks);
 
+/*-----------------------------------------------------------------------------
+Função: Escreve os bytes em buffer no arquivo de inodeNumber a partir de currentPointer e coloca o número de bytes escritos em numBytes
+Saída:	0 se deu tudo certo, -1 caso contrário
+-----------------------------------------------------------------------------*/
+int writeBytesOnFile(DWORD currentPointer, int inodeNumber, char *buffer, int size, int *numBytes);
+
+/*-----------------------------------------------------------------------------
+Função: Escreve os bytes de buffer no bloco blockNumber
+-----------------------------------------------------------------------------*/
+void writeBlock(int blockNumber, char *buffer);
 #endif
