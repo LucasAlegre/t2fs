@@ -125,7 +125,7 @@ int read2 (FILE2 handle, char *buffer, int size){
 
 	OpenFile file;
 	Inode fileInode;
-	int numBytes;
+	int numBytes = 0;
 
 	if(isFileHandleValid(handle)){
 		file = openFiles[handle];
@@ -134,6 +134,7 @@ int read2 (FILE2 handle, char *buffer, int size){
 				if(file.currentPointer+size <= fileInode.bytesFileSize){ // caso seja possível ler todos os size bytes
 					readBytesFromFile(file.currentPointer, fileInode, size, buffer);
 					file.currentPointer = file.currentPointer+size;
+					numBytes = size;
 				}
 				else{ //senão lê só o que for possível
 					numBytes = fileInode.bytesFileSize - file.currentPointer;
