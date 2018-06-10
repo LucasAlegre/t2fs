@@ -862,7 +862,7 @@ void getFilenameFromPath(char *pathname, char *filename){
 BOOL isFileOpen(int inodeNumber){
 	int i;
 	for(i = 0; i < MAX_OPEN_FILES; i++){
-		if(openFiles[i].record.inodeNumber == inodeNumber)
+		if(openFiles[i].record.TypeVal!=TYPEVAL_INVALIDO && openFiles[i].record.inodeNumber == inodeNumber)
 			return TRUE;
 	}
 	return FALSE;
@@ -871,7 +871,7 @@ BOOL isFileOpen(int inodeNumber){
 BOOL isDirOpen(int inodeNumber){
 	int i;
 	for(i = 0; i < MAX_OPEN_DIR; i++){
-		if(openDirs[i].record.inodeNumber == inodeNumber)
+		if(openDirs[i].record.TypeVal!=TYPEVAL_INVALIDO && openDirs[i].record.inodeNumber == inodeNumber)
 			return TRUE;
 	}
 	return FALSE;
@@ -930,11 +930,10 @@ void readBytesFromFile(DWORD currentPointer, Inode fileInode, int numBytes, char
 		}
 		currentPointer+=bytesRead;
 		numBytes -= bytesRead;	
-		pointer = currentPointer - currentBlock*(BLOCK_SIZE*SECTOR_SIZE);
 	}
 
 	if(currentBlock == 2){
-	pointer = currentPointer - (currentBlock-1)*(BLOCK_SIZE*SECTOR_SIZE);
+		pointer = currentPointer - (currentBlock-1)*(BLOCK_SIZE*SECTOR_SIZE);
 		bytesRead = readBlock(fileInode.dataPtr[1], pointer, numBytes, auxBuffer);
 		for(i = 0; i< bytesRead; i++){
 			buffer[currentByte] = auxBuffer[i];
@@ -1092,6 +1091,7 @@ int writeBytesOnFile(DWORD currentPointer, int inodeNumber, char *buffer, int si
 	DWORD pointers[POINTERS_PER_BLOCK], doublePointers[POINTERS_PER_BLOCK];
 	int inicio, currentBlock, pointer;
 	int currentByte = 0;
+	DWORD firstPointer = currentPointer;
 	int i, j, k;
 
 
@@ -1104,6 +1104,7 @@ int writeBytesOnFile(DWORD currentPointer, int inodeNumber, char *buffer, int si
 				fileInode.dataPtr[0] = searchBitmap2(BITMAP_DADOS, 0);
 				if(fileInode.dataPtr[0] < 0)
 					return -1;
+				setBitmap2(BITMAP_DADOS, fileInode.dataPtr[0], 1);
 				fileInode.blocksFileSize += 1;
 			}
 			readBlock(fileInode.dataPtr[0], 0, BLOCK_SIZE*SECTOR_SIZE, auxBuffer);
@@ -1126,6 +1127,7 @@ int writeBytesOnFile(DWORD currentPointer, int inodeNumber, char *buffer, int si
 				fileInode.dataPtr[1] = searchBitmap2(BITMAP_DADOS, 0);
 				if(fileInode.dataPtr[1] < 0)
 					return -1;
+				setBitmap2(BITMAP_DADOS, fileInode.dataPtr[1], 1);
 				fileInode.blocksFileSize += 1;
 			}
 			readBlock(fileInode.dataPtr[1], 0, BLOCK_SIZE*SECTOR_SIZE, auxBuffer);
@@ -1139,7 +1141,7 @@ int writeBytesOnFile(DWORD currentPointer, int inodeNumber, char *buffer, int si
 			if(currentByte < size){ //se ainda não escreveu tudo, continua escrevendo
 				currentBlock++;
 			}
-			currentPointer+=currentByte;
+			currentPointer=firstPointer+currentByte;
 		}
 
 		// Indireção simples
@@ -1158,20 +1160,22 @@ int writeBytesOnFile(DWORD currentPointer, int inodeNumber, char *buffer, int si
 						pointers[i] = searchBitmap2(BITMAP_DADOS, 0);
 						if(pointers[i] < 0)
 							return -1;
+						setBitmap2(BITMAP_DADOS, pointers[i], 1);
+						writePointerOnBlock(fileInode.singleIndPtr, pointers[i], i);
 						fileInode.blocksFileSize += 1;
 					}
 					readBlock(pointers[i], 0, BLOCK_SIZE*SECTOR_SIZE, auxBuffer);
-					k = pointer;
-					while(k< BLOCK_SIZE*SECTOR_SIZE && currentByte < size){
-						auxBuffer[k] = buffer[currentByte];
+					i = pointer;
+					while(i< BLOCK_SIZE*SECTOR_SIZE && currentByte < size){
+						auxBuffer[i] = buffer[currentByte];
 						currentByte++;
-						k++;
+						i++;
 					}
-					writeBlock(fileInode.dataPtr[0], auxBuffer);
+					writeBlock(pointers[i], auxBuffer);
 					if(currentByte < size){ //se ainda não escreveu tudo, continua escrevendo
 						currentBlock++;
 					}
-					currentPointer+=currentByte;
+					currentPointer=firstPointer+currentByte;
 				}
 			}
 		}
@@ -1193,6 +1197,7 @@ int writeBytesOnFile(DWORD currentPointer, int inodeNumber, char *buffer, int si
 						if(doublePointers[i] < 0){
 							return -1;
 						}
+						writePointerOnBlock(fileInode.doubleIndPtr, doublePointers[k], k);
 					}
 					getPointers(doublePointers[i], pointers);
 					inicio = (currentBlock-3-POINTERS_PER_BLOCK)-i*POINTERS_PER_BLOCK;
@@ -1203,6 +1208,8 @@ int writeBytesOnFile(DWORD currentPointer, int inodeNumber, char *buffer, int si
 								pointers[j] = searchBitmap2(BITMAP_DADOS, 0);
 								if(pointers[j] < 0)
 									return -1;
+								setBitmap2(BITMAP_DADOS, pointers[j], 1);
+								writePointerOnBlock(doublePointers[i], pointers[j], j);
 								fileInode.blocksFileSize += 1;
 							}
 							readBlock(pointers[j], 0, BLOCK_SIZE*SECTOR_SIZE, auxBuffer);
@@ -1216,7 +1223,7 @@ int writeBytesOnFile(DWORD currentPointer, int inodeNumber, char *buffer, int si
 							if(currentByte < size){ //se ainda não escreveu tudo, continua escrevendo
 								currentBlock++;
 							}
-							currentPointer+=currentByte;
+							currentPointer=firstPointer+currentByte;
 						}
 					}
 				}

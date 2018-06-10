@@ -186,7 +186,7 @@ int truncate2 (FILE2 handle){
 			if(file.currentPointer < fileInode.bytesFileSize){
 				currentBlock = file.currentPointer/(BLOCK_SIZE*SECTOR_SIZE);
 
-
+				printf("currentBlock %d \n", currentBlock);
 				if(fileInode.blocksFileSize > currentBlock+1){
 					if(file.currentPointer-currentBlock*BLOCK_SIZE*SECTOR_SIZE == 0){
 						freeBlocks(fileInode, file.record.inodeNumber, currentBlock+1, fileInode.blocksFileSize);
