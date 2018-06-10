@@ -295,6 +295,12 @@ int rmdir2 (char *pathname){
 int chdir2 (char *pathname){
 	initializeT2fs();
 
+	if(strcmp(pathname, "/") == 0) {
+		currentDirInode = ROOT_INODE;
+		strcpy(currentPath, "/");
+		return 0;
+	}
+
 	Record record;
 
 	if(getRecordFromPath(pathname, &record) != 0) {
