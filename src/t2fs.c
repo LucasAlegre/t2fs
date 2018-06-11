@@ -336,6 +336,11 @@ int getcwd2 (char *pathname, int size){
 	initializeT2fs();
 
 	strncpy(pathname, currentPath, size);
+
+	if(strcmp(pathname, "/") != 0) {
+		int len = strlen(pathname);
+		pathname[len - 1] = '\0';
+	}
 	return 0;
 }
 
