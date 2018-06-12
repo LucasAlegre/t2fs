@@ -186,14 +186,15 @@ int truncate2 (FILE2 handle){
 			if(file.currentPointer < fileInode.bytesFileSize){
 				currentBlock = file.currentPointer/(BLOCK_SIZE*SECTOR_SIZE);
 
-				if(fileInode.blocksFileSize > currentBlock+1){
-					if(file.currentPointer-currentBlock*BLOCK_SIZE*SECTOR_SIZE == 0){
+				if(file.currentPointer-currentBlock*BLOCK_SIZE*SECTOR_SIZE == 0){
 						freeBlocks(fileInode, file.record.inodeNumber, currentBlock+1, fileInode.blocksFileSize);
-					}
-					else{
+				}
+				else{
+					if(fileInode.blocksFileSize > currentBlock+1){
 						freeBlocks(fileInode, file.record.inodeNumber, currentBlock+2, fileInode.blocksFileSize);
 					}
 				}
+				
 				fileInode.bytesFileSize = file.currentPointer;
 				fileInode.blocksFileSize = file.currentPointer/(BLOCK_SIZE*SECTOR_SIZE) +1;	
 				writeInodeOnDisk(fileInode, file.record.inodeNumber);

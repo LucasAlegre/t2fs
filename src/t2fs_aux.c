@@ -1059,7 +1059,7 @@ void freeBlocks(Inode fileInode, int inodeNumber, int startBlock, int maxBlocks)
 	}
 	if(currentBlock>POINTERS_PER_BLOCK+2){
 		getPointers(fileInode.doubleIndPtr, doublePointers);
-		ini = currentBlock-3-POINTERS_PER_BLOCK;
+		ini = (currentBlock-3-POINTERS_PER_BLOCK)/POINTERS_PER_BLOCK;
 		for(i = ini; i<POINTERS_PER_BLOCK; i++){
 			getPointers(doublePointers[i], pointers);
 			inicio = (currentBlock-3-POINTERS_PER_BLOCK)-i*POINTERS_PER_BLOCK;
