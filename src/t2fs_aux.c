@@ -843,6 +843,12 @@ void fixPath(char* path) {
 }
 
 void getFilenameFromPath(char *pathname, char *filename){
+
+	if(strcmp(pathname, "/") == 0){  // Caso especial, arquivo do path "/" seria o '.'
+		strcpy(filename, ".\0");
+		return;
+	}
+
 	char *path;
 	char *aux;
 	path = malloc(sizeof(char) * (strlen(pathname) + 1));
