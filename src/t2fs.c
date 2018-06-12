@@ -305,12 +305,12 @@ int chdir2 (char *pathname){
 	Record record;
 
 	if(getRecordFromPath(pathname, &record) != 0) {
-		printError("Arquivo não encontrado!");
+		//printError("Arquivo não encontrado!");
 		return -1;
 	}
 
 	if(record.TypeVal != TYPEVAL_DIRETORIO) {
-		printError("Arquivo não é diretório ou inválido!");
+		//printError("Arquivo não é diretório ou inválido!");
 		return -2;
 	}
 
@@ -375,7 +375,7 @@ int readdir2 (DIR2 handle, DIRENT2 *dentry){
 	int i;
 
 	if(!isDirHandleValid(handle)) {
-		printError("Handle Invalido");
+		//printError("Handle Invalido");
 		return -1;
 	}
 
@@ -409,5 +409,6 @@ int closedir2 (DIR2 handle){
 	}
 
 	openDirs[handle].record.TypeVal = TYPEVAL_INVALIDO;
+	openDirs[handle].record.inodeNumber = INVALID_PTR;
 	return 0;
 }

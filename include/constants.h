@@ -1,7 +1,7 @@
 #ifndef __CONSTANTS___
 #define __CONSTANTS___
 
-#define DEBUG TRUE
+#define DEBUG FALSE
 
 #define	SECTOR_SIZE	256 //Bytes
 

@@ -99,7 +99,7 @@ int getInodeFromInodeNumber(DWORD inodeNumber, struct t2fs_inode *inode){
 	}
 
 	if(read_sector(inodeSector, buffer) != 0){
-		printf("Error: Failed reading inode sector!\n");
+		//printf("Error: Failed reading inode sector!\n");
 		return -1;
 	}
 
@@ -112,12 +112,6 @@ int getInodeFromInodeNumber(DWORD inodeNumber, struct t2fs_inode *inode){
 	inode->doubleIndPtr = *((DWORD*) (buffer + inode_byte_start + 20));   
 	inode->reservado[0] = *((DWORD*) (buffer + inode_byte_start + 24));
 	inode->reservado[1] = *((DWORD*) (buffer + inode_byte_start + 28));
-
-	if(DEBUG && 0){
-		printf("Inode blocksFileSize: %d\n", inode->blocksFileSize);
-		printf("Inode bytesFileSize: %d\n", inode->bytesFileSize);
-		printf("Inode dataPtr[0]: %d\n", inode->dataPtr[0]);
-	}
 
 	return 0;
 }
@@ -562,12 +556,12 @@ int initNewDirInode(int inodeNumber, int inodeNumberPreviousDir){
 	inode.dataPtr[0] = blockNum;
 
 	Record recordCurrent;
-	strcpy(recordCurrent.name, ".");
+	strcpy(recordCurrent.name, ".\0");
 	recordCurrent.TypeVal = TYPEVAL_DIRETORIO;
 	recordCurrent.inodeNumber = inodeNumber;
 
 	Record recordPrevious;
-	strcpy(recordPrevious.name, "..");
+	strcpy(recordPrevious.name, "..\0");
 	recordPrevious.TypeVal = TYPEVAL_DIRETORIO;
 	recordPrevious.inodeNumber = inodeNumberPreviousDir;
 
@@ -694,7 +688,7 @@ int writeRecordOnDir(DWORD blockNum, Record record, int recordNum){
 	int sector = blockNum*BLOCK_SIZE + (recordNum*RECORD_SIZE)/(SECTOR_SIZE);
 	int byte_start = (recordNum % RECORD_PER_SECTOR)*RECORD_SIZE;
 	if(read_sector(sector, buffer) != 0){
-		printf("Erro leitura do setor %d\n", sector);
+		//printf("Erro leitura do setor %d\n", sector);
 		return -1;
 	}
 
@@ -853,7 +847,7 @@ void getFilenameFromPath(char *pathname, char *filename){
 	char *aux;
 	path = malloc(sizeof(char) * (strlen(pathname) + 1));
 	memset(path, '\0', sizeof(path));
-	strncpy(path, pathname, strlen(pathname));
+	strncpy(path, pathname, strlen(pathname)+1);
 
 	aux = strtok(path, "/");
 	strcpy(filename, aux);
@@ -901,7 +895,7 @@ int writePointerOnBlock(DWORD blockNum, DWORD pointer, int index){
 	int byte_start = (index % PTR_PER_SECTOR)*PTR_SIZE;
 
 	if(read_sector(sector, buffer) != 0){
-		printf("Erro leitura do setor %d\n", sector);
+		//printf("Erro leitura do setor %d\n", sector);
 		return -1;
 	}
 
